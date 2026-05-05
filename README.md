@@ -12,6 +12,9 @@
 
 🛠 Технологический стек
 Backend: Java 17+, Spring Boot (Spring Web, Spring Data JPA).
+
 Database: PostgreSQL.
+
 Maps API: Yandex Maps JavaScript API.
+
 Support Bot: Интегрированная бета-версия помощника.
