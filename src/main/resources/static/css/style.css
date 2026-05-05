@@ -1,0 +1,922 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;900&display=swap');
+
+body {
+    font-family: 'Inter', sans-serif;
+    margin: 0;
+}
+
+/* --- Базовые стили сайдбара --- */
+.sidebar {
+    width: 280px;
+    height: 100vh;
+    background-color: #ffffff;
+    position: fixed;
+    top: 0;
+    left: -280px;
+    transition: left 0.3s ease-in-out;
+    padding: 20px 10px 20px 20px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    z-index: 1000;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+    box-sizing: border-box;
+}
+
+.sidebar.active {
+    left: 0;
+}
+
+/* --- Стили для кастомизации скроллбара сайдбара --- */
+.sidebar::-webkit-scrollbar {
+    width: 8px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+    background: #f8f9fa;
+    border-radius: 10px;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+    background: #ced4da;
+    border-radius: 10px;
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover {
+    background: #adb5bd;
+}
+
+.sidebar {
+    /* Для Firefox */
+    scrollbar-width: thin;
+    scrollbar-color: #ced4da #f8f9fa;
+}
+
+
+/* --- Стили для элементов внутри сайдбара --- */
+.sidebar h3 {
+    font-family: 'Inter', sans-serif;
+    font-weight: 900;
+    font-size: 20px;
+    color: #4C3C34;
+    text-align: center;
+    margin-top: 0;
+    margin-bottom: 25px;
+    text-transform: uppercase;
+}
+
+.sidebar .search-bar-container-sidebar {
+    position: relative;
+    margin-bottom: 20px;
+    background-color: #f1f3f5;
+    border-radius: 8px;
+}
+
+.sidebar .search-input {
+    width: calc(100% - 45px);
+    padding: 12px 15px;
+    border: none;
+    border-radius: 8px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    outline: none;
+    background-color: transparent;
+    color: #343a40;
+}
+
+.sidebar .search-input::placeholder {
+    color: #868e96;
+}
+
+.sidebar .search-icon-in-input {
+    position: absolute;
+    top: 50%;
+    right: 15px;
+    transform: translateY(-50%);
+    font-size: 16px;
+    color: #adb5bd;
+}
+
+.sidebar .how-to-search-link-sidebar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #E91E63;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: none;
+    margin-bottom: 25px;
+    padding: 5px 0;
+}
+
+.sidebar .how-to-search-link-sidebar i {
+    font-size: 18px;
+}
+
+.sidebar .filter-section h4 {
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    color: #495057;
+    margin-top: 0;
+    margin-bottom: 12px;
+    font-weight: 600;
+    padding-left: 5px;
+}
+
+.sidebar .filter-category.service-categories-list-custom {
+    border: none;
+    border-radius: 8px;
+    background-color: #fff;
+    overflow: hidden;
+}
+
+.sidebar .filter-item.service-category-item {
+    display: flex;
+    align-items: center;
+    padding: 14px 12px;
+    border: none;
+    border-bottom: 1px solid #e9ecef;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    background-color: #fff;
+}
+
+.sidebar .filter-category.service-categories-list-custom>.filter-item.service-category-item:last-child,
+.sidebar .filter-category.service-categories-list-custom>.filter-item.service-category-item:last-of-type {
+    border-bottom: none;
+}
+
+.sidebar .filter-item.service-category-item:hover {
+    background-color: #f8f9fa;
+}
+
+
+
+.sidebar .service-icon-wrapper {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 12px;
+    font-size: 18px;
+    border-radius: 8px;
+}
+
+.sidebar .service-text-wrapper {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar .service-title {
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    margin-bottom: 3px;
+}
+
+.sidebar .service-subtitle {
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    color: #868e96;
+}
+
+.sidebar .service-arrow {
+    font-size: 14px;
+    color: #adb5bd;
+    margin-left: 10px;
+    transition: transform 0.25s ease-in-out;
+}
+
+.sidebar .filter-item.service-category-item.active .service-arrow {
+    transform: rotate(90deg);
+}
+
+/* Цветовые схемы */
+.sidebar .color-scheme-red .service-icon-wrapper i,
+.sidebar .color-scheme-red .service-title {
+    color: #E91E63;
+}
+
+.sidebar .color-scheme-orange .service-icon-wrapper i,
+.sidebar .color-scheme-orange .service-title {
+    color: #FF9800;
+}
+
+.sidebar .color-scheme-green .service-icon-wrapper i,
+.sidebar .color-scheme-green .service-title {
+    color: #4CAF50;
+}
+
+.sidebar .color-scheme-purple .service-icon-wrapper i,
+.sidebar .color-scheme-purple .service-title {
+    color: #673AB7;
+}
+
+.sidebar .color-scheme-blue .service-icon-wrapper i,
+.sidebar .color-scheme-blue .service-title {
+    color: #2196F3;
+}
+
+.sidebar .color-scheme-teal .service-icon-wrapper i,
+.sidebar .color-scheme-teal .service-title {
+    color: #009688;
+}
+
+
+/* Стили для подкатегорий (возрастные группы) */
+.sidebar .filter-subcategory {
+    display: none;
+    padding-left: 0;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.sidebar .filter-category.service-categories-list-custom>.filter-subcategory:last-of-type {
+    border-bottom: none;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+}
+
+.sidebar .filter-subcategory.active {
+    display: block;
+}
+
+.sidebar .filter-subitem {
+    padding: 10px 12px 10px 56px;
+    border-top: 1px solid #dee2e6;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+    font-size: 14px;
+    color: #495057;
+    background-color: transparent;
+}
+
+.sidebar .filter-subcategory .filter-subitem:first-child {
+    border-top: none;
+}
+
+.sidebar .filter-subitem:hover {
+    background-color: #e9ecef;
+}
+
+.sidebar .filter-subitem.active {
+    background-color: #007bff;
+    color: #fff;
+    font-weight: 500;
+}
+
+/* --- Стили для основного контента и карты --- */
+#main-content {
+    margin-left: 0;
+    /* Плавная анимация сдвига контента И ИЗМЕНЕНИЯ ШИРИНЫ */
+    transition: margin-left 0.3s ease-in-out, width 0.3s ease-in-out;
+    position: relative;
+    /* ВАЖНО для позиционирования дочерних absolute элементов */
+    width: 100%;
+    height: 100vh;
+}
+
+#main-content.sidebar-active {
+    margin-left: 280px;
+    width: calc(100% - 280px);
+}
+
+#map-container {
+    width: 100%;
+    height: 100vh;
+    overflow: hidden;
+}
+
+#map {
+    width: 100%;
+    height: 100%;
+}
+
+#toggle-sidebar {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    /* Всегда 15px от левого края #main-content */
+    font-size: 24px;
+    padding: 5px 10px;
+    background-color: rgba(255, 255, 255, 0.8);
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+    z-index: 1001;
+}
+
+
+
+
+.auth-button {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    font-size: 22px;
+    padding: 6px 12px;
+    background-color: rgba(255, 255, 255, 0.8);
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+    z-index: 999;
+}
+
+/* === Стили для новой информационной панели организации === */
+.info-panel {
+    position: fixed;
+    /* Фиксированное позиционирование относительно viewport */
+    left: -360px;
+    /* Изначально полностью скрыта слева (ширина + небольшой запас) */
+    top: 0;
+    width: 350px;
+    /* Ширина панели */
+    height: 100vh;
+    /* На всю высоту экрана */
+    background-color: #ffffff;
+    box-shadow: 3px 0 15px rgba(0, 0, 0, 0.15);
+    z-index: 1002;
+    /* Выше карты (z-index: 1000 у сайдбара, кнопки меню/auth 1001/999) */
+    transition: left 0.35s ease-in-out;
+    padding: 20px;
+    box-sizing: border-box;
+    overflow-y: auto;
+    /* Прокрутка, если контент не помещается */
+    font-family: 'Inter', sans-serif;
+}
+
+.info-panel.active {
+    left: 0;
+    /* Панель выезжает слева */
+}
+
+/* Если основной сайдбар активен, то инфо-панель должна быть правее него */
+/* Это правило нужно, если вы хотите, чтобы они могли быть открыты одновременно и не перекрывали друг друга */
+body:has(#sidebar.active) .info-panel.active {
+    left: 280px;
+    /* Ширина вашего #sidebar */
+    /* Можно добавить transition и для этого случая, если необходимо */
+}
+
+
+.info-panel-close {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    font-size: 28px;
+    font-weight: bold;
+    color: #777;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+}
+
+.info-panel-close:hover {
+    color: #333;
+}
+
+.info-panel-header {
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.info-image-placeholder {
+    width: 100%;
+    height: 200px;
+    background-color: #f0f2f5;
+    border: 2px dashed #d1d8e0;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #a5b1c2;
+    font-size: 1em;
+    margin-bottom: 15px;
+}
+
+.info-image-placeholder img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 6px;
+    /* Если фото загружено, скруглим его */
+}
+
+
+#info-panel-name {
+    font-size: 1.6em;
+    font-weight: 700;
+    color: #2d3436;
+    margin-top: 0;
+    margin-bottom: 5px;
+    line-height: 1.3;
+}
+
+.info-panel-body p {
+    font-size: 0.95em;
+    line-height: 1.7;
+    color: #555;
+    margin-bottom: 12px;
+}
+
+.info-panel-body p strong {
+    font-weight: 600;
+    color: #333;
+    margin-right: 5px;
+}
+
+/* Адаптация основного контента, если инфо-панель активна (сдвиг карты) */
+/* Это опционально. По умолчанию панель будет перекрывать карту. */
+/* Чтобы карта сдвигалась, нужно будет управлять классом на #main-content из JS */
+/*
+#main-content.info-panel-visible {
+    margin-left: 350px; // Ширина info-panel
+    width: calc(100% - 350px);
+}
+
+// Если и сайдбар, и инфо-панель активны
+#main-content.sidebar-active.info-panel-visible {
+    margin-left: calc(280px + 350px); // Ширина сайдбара + ширина инфо-панели
+    width: calc(100% - (280px + 350px));
+}
+*/
+
+/* Стили для вкладок информационной панели */
+.info-panel-tabs {
+    display: flex;
+    border-bottom: 1px solid #e9ecef;
+    margin-bottom: 15px;
+}
+
+.info-tab {
+    flex: 1;
+    padding: 12px 0;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    color: #495057;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.info-tab.active {
+    border-bottom-color: #007bff;
+    color: #007bff;
+}
+
+.info-tab-content {
+    display: none;
+    padding: 0 5px;
+}
+
+.info-tab-content.active {
+    display: block;
+}
+
+.auth-message {
+    text-align: center;
+    padding: 15px;
+    margin-top: 20px;
+    background-color: #f8f9fa;
+    border-radius: 5px;
+    border: 1px solid #e9ecef;
+}
+
+.auth-message a {
+    color: #007bff;
+    text-decoration: none;
+}
+
+.auth-message a:hover {
+    text-decoration: underline;
+}
+
+/* Стили для отзывов */
+.reviews-container {
+    margin-top: 10px;
+}
+
+.reviews-list {
+    max-height: 200px;
+    overflow-y: auto;
+    margin-bottom: 20px;
+    padding-right: 5px;
+}
+
+.review-item {
+    padding: 12px;
+    margin-bottom: 15px;
+    background-color: #f8f9fa;
+    border-radius: 6px;
+    border-left: 3px solid #007bff;
+    max-width: 300px;
+    /* Максимальная ширина отзыва */
+    word-break: break-word;
+    /* Перенос слова */
+}
+
+.review-text {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    /* Ограничиваем до 3 строк */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    line-height: 1.5;
+    font-size: 14px;
+    color: #495057;
+    margin-bottom: 8px;
+    transition: max-height 0.3s ease-out;
+    max-height: 72px;
+    /* 3 строки по 24px */
+}
+
+/* Когда пользователь нажимает "Скрыть", убираем ограничение */
+.review-text.full {
+    -webkit-line-clamp: unset;
+    overflow: visible;
+    white-space: normal;
+    max-height: none !important;
+}
+
+.show-more-btn {
+    display: none;
+    background: none;
+    border: none;
+    color: #007bff;
+    cursor: pointer;
+    font-size: 0.9em;
+    margin-top: 5px;
+    text-align: left;
+    padding: 0;
+    font-family: 'Inter', sans-serif;
+}
+
+.show-more-btn:hover {
+    text-decoration: underline;
+}
+
+.review-author {
+    font-weight: 600;
+    margin-bottom: 5px;
+    color: #343a40;
+}
+
+.review-text {
+    font-size: 14px;
+    line-height: 1.5;
+    color: #495057;
+    margin-bottom: 8px;
+}
+
+.review-date {
+    font-size: 12px;
+    color: #868e96;
+    text-align: right;
+}
+
+.no-reviews-message {
+    text-align: center;
+    color: #868e96;
+    font-style: italic;
+    padding: 20px 0;
+}
+
+.add-review-form {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #e9ecef;
+}
+
+.add-review-form h4 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #495057;
+}
+
+#review-text {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    resize: vertical;
+    font-family: 'Inter', sans-serif;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: pre-wrap;
+}
+
+.rating-container {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.rating-container span {
+    margin-right: 10px;
+    font-size: 14px;
+    color: #495057;
+}
+
+.rating-stars {
+    display: flex;
+}
+
+.rating-stars i {
+    color: #e9ecef;
+    cursor: pointer;
+    font-size: 18px;
+    margin-right: 5px;
+    transition: color 0.2s;
+}
+
+.rating-stars i.active {
+    color: #ffc107;
+}
+
+#submit-review {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    transition: background-color 0.2s;
+}
+
+#submit-review:hover {
+    background-color: #218838;
+}
+
+
+
+/* Стили для чат-бота */
+.chatbot-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+}
+
+.chatbot-toggle {
+    background-color: #007bff;
+    color: white;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    transition: background-color 0.3s;
+}
+
+.chatbot-toggle:hover {
+    background-color: #0056b3;
+}
+
+.chatbot-window {
+    display: none;
+    background-color: white;
+    width: 300px;
+    max-height: 400px;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+    flex-direction: column;
+}
+
+.chatbot-window.active {
+    display: flex;
+}
+
+.chatbot-header {
+    background-color: #007bff;
+    color: white;
+    padding: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.chatbot-header h4 {
+    margin: 0;
+    font-size: 1.1em;
+}
+
+.chatbot-close {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.2em;
+    cursor: pointer;
+}
+
+.chatbot-messages {
+    flex-grow: 1;
+    padding: 10px;
+    overflow-y: auto;
+    background-color: #f9f9f9;
+}
+
+.chatbot-message {
+    margin: 10px 0;
+    padding: 10px;
+    border-radius: 5px;
+    max-width: 80%;
+}
+
+.chatbot-message.user {
+    background-color: #d1e7dd;
+    color: #0f5132;
+    text-align: left;
+    margin-right: 20%;
+}
+
+.chatbot-message.admin {
+    background-color: #e6f3ff;
+    color: #1a73e8;
+    text-align: right;
+    margin-left: 20%;
+}
+
+.message-content {
+    position: relative;
+}
+
+.timestamp {
+    font-size: 0.75em;
+    color: #666;
+    display: block;
+    margin-top: 5px;
+}
+
+.chatbot-input {
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+    background-color: #fff;
+    border-top: 1px solid #ddd;
+    gap: 10px;
+}
+
+.chatbot-input textarea {
+    flex-grow: 1;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 8px;
+    resize: none;
+    font-size: 0.9em;
+}
+
+.chatbot-input .btn {
+    align-self: flex-end;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.chatbot-input .btn:hover {
+    background-color: #0056b3;
+}
+
+/* Адаптивность */
+@media (max-width: 600px) {
+    .chatbot-window {
+        width: 100%;
+        max-width: 280px;
+        bottom: 60px;
+        right: 10px;
+    }
+}
+
+
+.chat-list {
+    max-height: 400px;
+    overflow-y: auto;
+    margin-bottom: 15px;
+}
+
+.chat-item {
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    margin-bottom: 10px;
+    padding: 10px;
+    background-color: #fff;
+}
+
+.chat-item h4 {
+    margin: 0;
+    padding: 5px;
+}
+
+.chat-messages {
+    padding: 10px;
+    background-color: #f9f9f9;
+}
+
+.some-class {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    /* Например, 3 строки */
+    line-clamp: 3;
+    overflow: hidden;
+}
+
+.locate-user-button {
+    background: none;
+    border: 1px solid #3498db;
+    cursor: pointer;
+    bottom: 45px; /* Отступ от низа */
+    left: 1px; /* Отступ от правого края */
+    z-index: 1000; /* Поверх карты */
+    font-size: inherit;
+    margin: 0 12px;
+    text-decoration: none;
+    color: #3498db;
+    padding: 5px 10px;
+    border-radius: 5px;
+    position: absolute;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.locate-user-button:hover {
+    background-color: #3498db;
+    color: white;
+}
+
+.notification {
+    position: relative;
+    padding: 15px;
+    top: 45px;
+    border-radius: .25rem;
+    box-shadow: 0 .5rem 1rem rgba(0,0,0,.15);
+    margin-bottom: 10px;
+    max-width: 400px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    animation: slideIn 0.3s ease-out forwards, fadeOut 5s ease-in 3s forwards;
+}
+
+/* Стиль info — аналог "заполните профиль" */
+.notification.info {
+    background-color: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeeba;
+}
+
+/* Успешное действие */
+.notification.success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+/* Ошибка */
+.notification.error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+/* Закрытие уведомления */
+.notification .notification-close {
+    font-size: 1.2rem;
+    margin-left: 15px;
+    cursor: pointer;
+    background: none;
+    border: none;
+    color: #856404;
+}
+.notification .notification-close:hover {
+    color: #333;
+}
+
+@keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+@keyframes fadeOut {
+    to { opacity: 0; transform: translateX(100%); }
+}

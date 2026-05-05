@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security6">
+<head>
+    <meta charset="UTF-8">
+    <title>Личный кабинет</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}"> <!-- Ваш общий стиль -->
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8f9fa; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; color: #333; }
+        .cabinet-container { background-color: #fff; padding: 30px 40px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 650px; }
+        h1 { text-align: center; color: #2c3e50; margin-bottom: 30px; font-size: 2em; }
+        .form-group { margin-bottom: 22px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 500; color: #495057; font-size: 0.95em; }
+        .form-group input[type="text"],
+        .form-group input[type="email"],
+        .form-group input[type="tel"],
+        .form-group input[type="number"],
+        .form-group select {
+            width: 100%; padding: 12px; border: 1px solid #ced4da;
+            border-radius: 5px; font-size: 1em; box-sizing: border-box;
+            transition: border-color .15s ease-in-out, box-shadow .15s ease-in-out;
+        }
+        .form-group input:focus, .form-group select:focus { border-color: #80bdff; outline: 0; box-shadow: 0 0 0 .2rem rgba(0,123,255,.25); }
+        .form-group input[readonly] { background-color: #e9ecef; cursor: not-allowed; }
+        .btn-primary {
+            background-color: #007bff; border-color: #007bff; color: white; padding: 12px 20px;
+            font-size: 1.05em; border-radius: 5px; cursor: pointer; display: block; width: 100%;
+            margin-top: 25px; font-weight: 500; transition: background-color 0.2s;
+        }
+        .btn-primary:hover { background-color: #0056b3; border-color: #0056b3; }
+        .message { padding: 12px 15px; margin-bottom: 25px; border-radius: 5px; text-align: center; font-size: 0.95em; border: 1px solid transparent; }
+        .success-message { background-color: #d1e7dd; color: #0f5132; border-color: #badbcc; }
+        .error-message { background-color: #f8d7da; color: #842029; border-color: #f5c2c7; }
+        .navigation-links { margin-top: 30px; text-align: center; padding-top: 20px; border-top: 1px solid #eee; }
+        .navigation-links a, .navigation-links form button {
+            margin: 0 10px; color: #007bff; text-decoration: none; font-weight: 500;
+            padding: 8px 12px; border-radius: 4px; transition: background-color 0.2s, color 0.2s;
+        }
+        .navigation-links a:hover { background-color: #e9ecef; color: #0056b3; }
+        .navigation-links form button { background: none; border: 1px solid #007bff; cursor: pointer; font-size: inherit; }
+        .navigation-links form button:hover { background-color: #007bff; color:white; }
+        .form-hint { font-size: 0.85em; color: #6c757d; margin-top: 5px; }
+    </style>
+</head>
+<body>
+<div class="cabinet-container">
+    <h1>Личный кабинет</h1>
+
+    <!-- Отображение flash-сообщений -->
+    <div th:if="${successMessage}" class="message success-message" th:text="${successMessage}"></div>
+    <div th:if="${errorMessage}" class="message error-message" th:text="${errorMessage}"></div>
+
+    <form th:action="@{/cabinet}" method="post" th:object="${profile}">
+        <!-- Скрытое поле для ID профиля, если он уже существует (необязательно, если логика обновления это обрабатывает) -->
+        <input type="hidden" th:if="*{id != null}" th:field="*{id}" />
+
+        <div class="form-group">
+            <label for="name">Ваше имя:</label>
+            <!-- Предполагается, что объект 'user' (Login) также передается в модель -->
+            <input type="text" id="name" name="name" th:value="${user.name}" required class="form-control">
+        </div>
+        <div class="form-group">
+            <label for="email">Email (нельзя изменить через кабинет):</label>
+            <input type="email" id="email" name="email" th:value="${user.email}" readonly class="form-control">
+            <div class="form-hint">Для смены email обратитесь в службу поддержки.</div>
+        </div>
+        <div class="form-group">
+            <label for="phone">Контактный телефон:</label>
+            <input type="tel" id="phone" name="phone" th:field="*{phone}" placeholder="+7 (XXX) XXX-XX-XX" class="form-control">
+        </div>
+        <div class="form-group">
+            <label for="diagnosis">Основная категория потребности/диагноз (для рекомендаций):</label>
+            <select id="diagnosis" name="diagnosis" th:field="*{diagnosis}" class="form-control">
+                <option value="">-- Не выбрано --</option>
+                <option value="educational">Образовательные потребности</option>
+                <option value="social">Социальная поддержка</option>
+                <option value="medical">Медицинские потребности</option>
+                <option value="legal">Юридическая помощь</option>
+                <option value="psychological">Психологическая поддержка</option>
+                <option value="commercial">Интересуют коммерческие услуги</option>
+                <!-- Добавьте другие релевантные категории, если они есть в вашей системе -->
+            </select>
+            <div class="form-hint">Это поможет нам подбирать наиболее релевантные услуги.</div>
+        </div>
+        <div class="form-group">
+            <label for="childAge">Возраст ребенка (если применимо, укажите только цифру):</label>
+            <input type="number" id="childAge" name="childAge" th:field="*{childAge}" min="0" max="23" placeholder="Например, 5" class="form-control">
+        </div>
+
+        <button type="submit" class="btn-primary">Сохранить изменения</button>
+    </form>
+
+    <div class="navigation-links">
+        <a th:href="@{/}">Вернуться на карту</a>
+        <form th:action="@{/logout}" method="post" style="display: inline;">
+            <button type="submit">Выйти</button>
+        </form>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security6">
+<head>
+    <meta charset="UTF-8">
+    <title>Админ-панель</title>
+    <script src="https://api-maps.yandex.ru/2.1/?apikey=c346c275-4f93-44c4-8aa1-f67dc426e367&lang=ru_RU"></script>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <style>
+        body { font-family: 'Inter', sans-serif; margin: 0; padding: 20px; background-color: #f4f7f6; color: #333; }
+        .admin-container { max-width: 1200px; margin: 20px auto; background: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 2px 15px rgba(0,0,0,0.1); }
+        h1, h2 { text-align: center; color: #2c3e50; }
+        h1 { margin-bottom: 25px; }
+        h2 { margin-top: 35px; margin-bottom: 20px; border-bottom: 2px solid #ecf0f1; padding-bottom: 10px; font-size: 1.8em; }
+        .nav-links { text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid #eee; }
+        .nav-links a, .nav-links button {
+            margin: 0 12px; text-decoration: none; color: #3498db; font-weight: 500;
+            padding: 8px 15px; border-radius: 5px; transition: background-color 0.3s, color 0.3s;
+        }
+        .nav-links a:hover, .nav-links button:hover { background-color: #3498db; color: white; }
+        .nav-links button { background: none; border: 1px solid #3498db; cursor: pointer; font-size: inherit; }
+
+        table { width: 100%; border-collapse: collapse; margin-bottom: 25px; font-size: 0.95em; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; vertical-align: middle; }
+        th { background-color: #e9ecef; font-weight: 600; }
+        tr:nth-child(even) { background-color: #f8f9fa; }
+        .actions {
+            display: flex; /* Горизонтальное размещение */
+            gap: 8px; /* Пространство между кнопками */
+            align-items: center; /* Выравнивание по вертикали */
+        }
+        .actions a, .actions button {
+            margin-right: 0; text-decoration: none; padding: 9px 12px;
+            border-radius: 4px; font-size: 0.9em; border: none; cursor: pointer;
+            transition: opacity 0.2s; margin-top: 7px;
+        }
+        .actions .edit-btn { background-color: #ffc107; color: white; }
+        .actions .edit-btn:hover { opacity: 0.8; }
+        .actions .delete-btn { background-color: #dc3545; color: white; }
+        .actions .delete-btn:hover { opacity: 0.8; }
+
+        .form-section { margin-bottom: 30px; padding: 25px; background-color: #fdfdfd; border: 1px solid #ecf0f1; border-radius: 5px; }
+        .form-section h3 { margin-top: 0; margin-bottom: 20px; color: #34495e; }
+        .form-group { margin-bottom: 18px; }
+        .form-group label { display: block; margin-bottom: 6px; font-weight: 500; color: #555; }
+        .form-group input[type="text"],
+        .form-group input[type="number"],
+        .form-group input[type="email"],
+        .form-group input[type="password"],
+        .form-group select {
+            width: 100%;
+            padding: 10px; border: 1px solid #ced4da; border-radius: 4px;
+            box-sizing: border-box; font-size: 1em;
+            transition: border-color 0.2s;
+        }
+        .form-group input:focus, .form-group select:focus { border-color: #3498db; outline: none; box-shadow: 0 0 0 0.1rem rgba(52, 152, 219, 0.25); }
+        .btn { padding: 10px 18px; border-radius: 4px; border: none; cursor: pointer; font-size: 1em; font-weight: 500; transition: background-color 0.3s; }
+        .btn-primary { background-color: #28a745; color: white; }
+        .btn-primary:hover { background-color: #218838; }
+        .btn-submit-edit { background-color: #007bff; color: white; }
+        .btn-submit-edit:hover { background-color: #0056b3; }
+
+        .validation-error { color: #e74c3c; font-size: 0.85em; margin-top: 4px; }
+
+        .modal { display: none; position: fixed; z-index: 1050; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5); }
+        .modal-content { background-color: #fff; margin: 8% auto; padding: 25px; border: 1px solid #bbb; width: 90%; max-width: 650px; border-radius: 6px; position: relative; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+        .close-btn { color: #888; position: absolute; top: 10px; right: 20px; font-size: 28px; font-weight: bold; }
+        .close-btn:hover, .close-btn:focus { color: #333; text-decoration: none; cursor: pointer; }
+
+        .map-container {
+            height: 300px;
+            width: 100%;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        #add-map-preview, #edit-map-preview {
+            height: 100%;
+            width: 100%;
+        }
+
+        .map-controls {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .map-controls button {
+            background: none; border: 1px solid #3498db; cursor: pointer; font-size: inherit;
+            margin: 0 12px; text-decoration: none; color: #3498db; font-weight: 500;
+            padding: 5px 10px; border-radius: 5px; transition: background-color 0.3s, color 0.3s;
+        }
+
+        .map-controls button:hover {
+            background-color: #3498db; color: white;
+        }
+
+        .table-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .search-and-add {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .search-input {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 300px;
+        }
+        .add-btn {
+            background-color: #34a853;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            font-size: 1em;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .add-btn:hover {
+            background-color: #2d9249;
+        }
+
+        /* Новые стили для уведомлений */
+        .notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 15px 20px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+            max-width: 80%;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        .success-notification {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .error-notification {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .notification-close {
+            margin-left: 15px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+            to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+
+        .report-btn {
+            background-color: #4a90e2; /* Голубой цвет */
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-right: 10px;
+        }
+
+        .report-btn:hover {
+            background-color: #357ABD;
+        }
+    </style>
+</head>
+<body>
+<div class="admin-container">
+    <h1>Административная панель</h1>
+    <div class="nav-links">
+        <a th:href="@{/}">Перейти на карту</a>
+        <a th:href="@{/admin/chats}">Входящие сообщения</a>
+        <form th:action="@{/logout}" method="post" style="display: inline;">
+            <button type="submit">Выйти из системы</button>
+        </form>
+    </div>
+
+    <!-- Уведомления будут добавляться сюда динамически -->
+    <div id="notifications-container"></div>
+
+    <h2 id="manage-markers-heading">Управление маркерами</h2>
+
+    <div class="table-actions">
+        <div class="search-and-add">
+            <input type="text" id="marker-search" class="search-input" placeholder="Поиск по названию...">
+            <button class="add-btn" onclick="openAddModal()">+ Добавить маркер</button>
+        </div>
+        <button class="report-btn" onclick="generateReport()">Сформировать отчет</button>
+    </div>
+
+    <div style="overflow-x:auto;">
+        <table id="markers-table">
+            <thead>
+            <tr>
+                <th>Название</th>
+                <th>Адрес</th>
+                <th>Категория</th>
+                <th>Возраст</th>
+                <th>Координаты (Ш, Д)</th>
+                <th>Действия</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:if="${#lists.isEmpty(markers)}">
+                <td colspan="7" style="text-align:center;">Маркеры пока не добавлены</td>
+            </tr>
+            <tr th:each="marker : ${markers}" class="marker-row">
+                <td class="marker-name" th:text="${marker.name}"></td>
+                <td th:text="${marker.address ?: '-'}"></td>
+                <td th:text="${marker.diagnosis ?: '-'}"></td>
+                <td th:text="${marker.age ?: '-'}"></td>
+                <td th:text="${marker.latitude + ', ' + marker.longitude}"></td>
+                <td class="actions">
+                    <button th:attr="onclick=|openEditModal(${marker.id})|" class="edit-btn">✎</button>
+                    <form th:action="@{/admin/markers/delete}" method="post" style="display: inline;">
+                        <input type="hidden" name="id" th:value="${marker.id}"/>
+                        <button type="submit" class="delete-btn" onclick="return confirm('Вы уверены, что хотите удалить этот маркер?');">✕</button>
+                    </form>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Модальное окно для добавления маркера -->
+    <div id="addMarkerModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeAddModal()">×</span>
+            <h3>Добавить новый маркер</h3>
+            <form id="addMarkerForm" th:action="@{/admin/markers/add}" th:object="${newMarker}" method="post">
+                <div th:if="${#fields.hasErrors('newMarker.*')}" class="notification error-notification">
+                    <span>Пожалуйста, исправьте ошибки в форме:</span>
+                    <ul>
+                        <li th:each="err : ${#fields.errors('newMarker.*')}" th:text="${err}"></li>
+                    </ul>
+                    <span class="notification-close" onclick="this.parentElement.style.display='none'">×</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="add-name">Название организации/услуги:</label>
+                    <input type="text" id="add-name" th:field="*{name}" required>
+                    <div th:if="${#fields.hasErrors('name')}" th:errors="*{name}" class="validation-error"></div>
+                </div>
+
+                <div class="form-group">
+                    <label>Выберите местоположение на карте:</label>
+                    <div class="map-container">
+                        <div id="add-map-preview"></div>
+                    </div>
+                    <div class="map-controls">
+                        <button type="button" id="add-search-by-address">Найти по адресу</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="add-address">Адрес:</label>
+                    <input type="text" id="add-address" th:field="*{address}">
+                    <div th:if="${#fields.hasErrors('address')}" th:errors="*{address}" class="validation-error"></div>
+                </div>
+                <div class="form-group">
+                    <label for="add-latitude">Широта:</label>
+                    <input type="number" step="any" id="add-latitude" th:field="*{latitude}" required>
+                    <div th:if="${#fields.hasErrors('latitude')}" th:errors="*{latitude}" class="validation-error"></div>
+                </div>
+                <div class="form-group">
+                    <label for="add-longitude">Долгота:</label>
+                    <input type="number" step="any" id="add-longitude" th:field="*{longitude}" required>
+                    <div th:if="${#fields.hasErrors('longitude')}" th:errors="*{longitude}" class="validation-error"></div>
+                </div>
+                <div class="form-group">
+                    <label for="add-diagnosis">Категория услуги:</label>
+                    <select id="add-diagnosis" th:field="*{diagnosis}">
+                        <option value="">-- Не выбрано --</option>
+                        <option value="educational">Образовательные</option>
+                        <option value="social">Социальные</option>
+                        <option value="medical">Медицинские</option>
+                        <option value="legal">Юридические</option>
+                        <option value="psychological">Психологические</option>
+                        <option value="commercial">Коммерческие</option>
+                    </select>
+                    <div th:if="${#fields.hasErrors('diagnosis')}" th:errors="*{diagnosis}" class="validation-error"></div>
+                </div>
+                <div class="form-group">
+                    <label for="add-age">Возрастная категория:</label>
+                    <select id="add-age" th:field="*{age}">
+                        <option value="">-- Не выбрано --</option>
+                        <option value="0-3">0-3 года</option>
+                        <option value="4-6">4-6 лет</option>
+                        <option value="7-12">7-12 лет</option>
+                        <option value="13-17">13-17 лет</option>
+                        <option value="18-23">18-23 года</option>
+                        <option value="24+">24 года и старше</option>
+                    </select>
+                    <div th:if="${#fields.hasErrors('age')}" th:errors="*{age}" class="validation-error"></div>
+                </div>
+                <div class="form-group">
+                    <label for="add-photo">Загрузите фото:</label>
+                    <input type="file" id="add-photo" name="photo" accept="image/*"/>
+                </div>
+                <button type="submit" class="btn btn-primary">Добавить маркер</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Модальное окно для редактирования маркера -->
+    <div id="editMarkerModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeEditModal()">×</span>
+            <h3>Редактировать маркер</h3>
+            <form id="editMarkerForm" th:action="@{/admin/markers/update}" th:object="${editMarker}" method="post">
+                <input type="hidden" th:field="*{id}" id="edit-id"/>
+
+                <div th:if="${#fields.hasErrors('editMarker.*')}" class="notification error-notification">
+                    <span>Пожалуйста, исправьте ошибки в форме:</span>
+                    <ul>
+                        <li th:each="err : ${#fields.errors('editMarker.*')}" th:text="${err}"></li>
+                    </ul>
+                    <span class="notification-close" onclick="this.parentElement.style.display='none'">×</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="edit-name">Название:</label>
+                    <input type="text" th:field="*{name}" id="edit-name" required/>
+                    <div th:if="${#fields.hasErrors('name')}" th:errors="*{name}" class="validation-error"></div>
+                </div>
+
+                <div class="form-group">
+                    <label>Местоположение на карте:</label>
+                    <div class="map-container">
+                        <div id="edit-map-preview"></div>
+                    </div>
+                    <div class="map-controls">
+                        <button type="button" id="edit-search-by-address">Найти по адресу</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="edit-address">Адрес:</label>
+                    <input type="text" th:field="*{address}" id="edit-address"/>
+                    <div th:if="${#fields.hasErrors('address')}" th:errors="*{address}" class="validation-error"></div>
+                </div>
+                <div class="form-group">
+                    <label for="edit-latitude">Широта:</label>
+                    <input type="number" step="any" th:field="*{latitude}" id="edit-latitude" required/>
+                    <div th:if="${#fields.hasErrors('latitude')}" th:errors="*{latitude}" class="validation-error"></div>
+                </div>
+                <div class="form-group">
+                    <label for="edit-longitude">Долгота:</label>
+                    <input type="number" step="any" th:field="*{longitude}" id="edit-longitude" required/>
+                    <div th:if="${#fields.hasErrors('longitude')}" th:errors="*{longitude}" class="validation-error"></div>
+                </div>
+                <div class="form-group">
+                    <label for="edit-diagnosis">Категория услуги:</label>
+                    <select th:field="*{diagnosis}" id="edit-diagnosis">
+                        <option value="">-- Не выбрано --</option>
+                        <option value="educational">Образовательные</option>
+                        <option value="social">Социальные</option>
+                        <option value="medical">Медицинские</option>
+                        <option value="legal">Юридические</option>
+                        <option value="psychological">Психологические</option>
+                        <option value="commercial">Коммерческие</option>
+                    </select>
+                    <div th:if="${#fields.hasErrors('diagnosis')}" th:errors="*{diagnosis}" class="validation-error"></div>
+                </div>
+                <div class="form-group">
+                    <label for="edit-age">Возрастная категория:</label>
+                    <select th:field="*{age}" id="edit-age">
+                        <option value="">-- Не выбрано --</option>
+                        <option value="0-3">0-3 года</option>
+                        <option value="4-6">4-6 лет</option>
+                        <option value="7-12">7-12 лет</option>
+                        <option value="13-17">13-17 лет</option>
+                        <option value="18-23">18-23 года</option>
+                        <option value="24+">24 года и старше</option>
+                    </select>
+                    <div th:if="${#fields.hasErrors('age')}" th:errors="*{age}" class="validation-error"></div>
+                </div>
+                <div class="form-group">
+                    <label for="edit-phone">Телефон:</label>
+                    <input type="text" th:field="*{phone}" id="edit-phone" />
+                    <div th:if="${#fields.hasErrors('phone')}" th:errors="*{phone}" class="validation-error"></div>
+                </div>
+                <div class="form-group">
+                    <label for="edit-email">Почта:</label>
+                    <input type="email" th:field="*{email}" id="edit-email" />
+                    <div th:if="${#fields.hasErrors('email')}" th:errors="*{email}" class="validation-error"></div>
+                </div>
+                <div class="form-group">
+                    <label for="edit-photo">Загрузите новое фото:</label>
+                    <input type="file" id="edit-photo" name="photo" accept="image/*"/>
+                </div>
+                <button type="submit" class="btn btn-submit-edit">Сохранить изменения</button>
+            </form>
+        </div>
+    </div>
+
+    <h2 id="add-admin-heading">Управление администраторами</h2>
+    <div class="form-section" id="add-admin-form-section">
+        <h3>Добавить нового администратора</h3>
+        <form th:action="@{/admin/add-admin}" method="post">
+            <div class="form-group">
+                <label for="admin-name">Имя администратора:</label>
+                <input type="text" id="admin-name" name="name" required>
+            </div>
+            <div class="form-group">
+                <label for="admin-email">Email администратора:</label>
+                <input type="email" id="admin-email" name="email" required>
+            </div>
+            <div class="form-group">
+                <label for="admin-password">Пароль (минимум 8 символов):</label>
+                <input type="password" id="admin-password" name="password" required minlength="8">
+            </div>
+            <div class="form-group">
+                <label for="admin-confirm-password">Подтвердите пароль:</label>
+                <input type="password" id="admin-confirm-password" name="confirmPassword" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Добавить администратора</button>
+        </form>
+    </div>
+</div>
+
+<script th:inline="javascript">
+    /*<![CDATA[*/
+    // Глобальные переменные для карт и маркеров
+    let map, editMap;
+    let marker, editMarker;
+
+    document.addEventListener('DOMContentLoaded', function () {
+        // Инициализация карт
+        ymaps.ready(() => {
+            initAddMap();
+            initEditMap();
+        });
+
+        // Обработчики для формы добавления
+        document.getElementById('add-search-by-address').addEventListener('click', () =>
+            searchByAddress('add-address', 'add-map-preview', marker)
+        );
+
+        // Обработчики для формы редактирования
+        document.getElementById('edit-search-by-address').addEventListener('click', () =>
+            searchByAddress('edit-address', 'edit-map-preview', editMarker)
+        );
+
+        // Обработка формы добавления маркера
+        const addForm = document.getElementById('addMarkerForm');
+        if (addForm) {
+            addForm.addEventListener('submit', function (e) {
+                e.preventDefault();
+
+                const formData = new FormData(addForm);
+                const photoInput = document.getElementById('add-photo');
+                const file = photoInput.files[0];
+
+                if (file) {
+                    const fileData = new FormData();
+                    fileData.append("file", file); // ← имя должно совпадать с @RequestParam("file")
+
+                    fetch('/api/upload/photo', {
+                        method: 'POST',
+                        body: fileData,
+                        credentials: 'include'
+                    })
+                    .then(response => {
+                        if (!response.ok) throw new Error("Ошибка загрузки фото");
+                        return response.text(); // или response.json(), если сервер возвращает JSON
+                    })
+                    .then(fileUrl => {
+                        formData.set("imageUrl", fileUrl); // Сохраняем URL
+                        return fetch('/admin/markers/add', {
+                            method: 'POST',
+                            body: formData
+                        });
+                    })
+                    .then(() => window.location.reload())
+                    .catch(error => {
+                        console.error('Ошибка:', error);
+                        alert('Ошибка при добавлении маркера');
+                    });
+                } else {
+                    // Если фото не выбрано — отправляем без imageUrl
+                    fetch('/admin/markers/add', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(() => window.location.reload())
+                    .catch(error => {
+                        console.error('Ошибка:', error);
+                        alert('Ошибка при добавлении маркера');
+                    });
+                }
+            });
+        }
+
+        // Обработка формы редактирования маркера
+        const editForm = document.getElementById('editMarkerForm');
+        if (editForm) {
+            editForm.addEventListener('submit', function (e) {
+                e.preventDefault();
+
+                const formData = new FormData(editForm);
+                const photoInput = document.getElementById('edit-photo');
+                const file = photoInput.files[0];
+
+                if (file) {
+                    const fileData = new FormData();
+                    fileData.append("file", file);
+
+                    fetch('/api/upload/photo', {
+                        method: 'POST',
+                        body: fileData,
+                        credentials: 'include'
+                    })
+                    .then(response => {
+                        if (!response.ok) throw new Error("Ошибка загрузки фото");
+                        return response.text();
+                    })
+                    .then(fileUrl => {
+                        formData.set("imageUrl", fileUrl);
+                        return fetch('/admin/markers/update', {
+                            method: 'POST',
+                            body: formData
+                        });
+                    })
+                    .then(() => window.location.reload())
+                    .catch(error => {
+                        console.error('Ошибка:', error);
+                        alert('Ошибка при обновлении маркера');
+                    });
+                } else {
+                    fetch('/admin/markers/update', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(() => window.location.reload())
+                    .catch(error => {
+                        console.error('Ошибка:', error);
+                        alert('Ошибка при обновлении маркера');
+                    });
+                }
+            });
+        }
+    });
+
+    // === Функции работы с картой ===
+
+    function initAddMap() {
+        map = new ymaps.Map("add-map-preview", {
+            center: [46.3494, 48.0492],
+            zoom: 12
+        });
+
+        marker = new ymaps.Placemark(map.getCenter(), {}, {
+            draggable: false // Отключаем перетаскивание
+        });
+
+        map.geoObjects.add(marker);
+
+        // Добавляем обработчик клика по карте
+        map.events.add('click', function (e) {
+            const coords = e.get('coords');
+            marker.geometry.setCoordinates(coords);
+
+            // Обратное геокодирование для получения адреса
+            reverseGeocode(coords, 'add-address', 'add-latitude', 'add-longitude');
+        });
+    }
+
+    function initEditMap() {
+        editMap = new ymaps.Map("edit-map-preview", {
+            center: [46.3494, 48.0492],
+            zoom: 12
+        });
+
+        editMarker = new ymaps.Placemark(editMap.getCenter(), {}, {
+            draggable: false
+        });
+
+        editMap.geoObjects.add(editMarker);
+
+        // Добавляем обработчик клика по карте
+        editMap.events.add('click', function (e) {
+            const coords = e.get('coords');
+            editMarker.geometry.setCoordinates(coords);
+
+            // Обратное геокодирование для получения адреса
+            reverseGeocode(coords, 'edit-address', 'edit-latitude', 'edit-longitude');
+        });
+    }
+
+    function searchByAddress(addressId, mapId, markerObj) {
+        const address = document.getElementById(addressId).value;
+        if (!address) {
+            showNotification('Введите адрес для поиска', 'error');
+            return;
+        }
+
+        ymaps.geocode(address).then(function (res) {
+            const firstGeoObject = res.geoObjects.get(0);
+            if (firstGeoObject) {
+                const coords = firstGeoObject.geometry.getCoordinates();
+                markerObj.geometry.setCoordinates(coords);
+
+                const currentMap = mapId === 'add-map-preview' ? map : editMap;
+                currentMap.setCenter(coords, 15);
+
+                const latId = mapId === 'add-map-preview' ? 'add-latitude' : 'edit-latitude';
+                const lonId = mapId === 'add-map-preview' ? 'add-longitude' : 'edit-longitude';
+                const addrId = mapId === 'add-map-preview' ? 'add-address' : 'edit-address';
+
+                // Сохраняем координаты
+                document.getElementById(latId).value = coords[0].toFixed(6);
+                document.getElementById(lonId).value = coords[1].toFixed(6);
+
+                // Получаем полный адрес и записываем его в поле "адрес"
+                const fullAddress = firstGeoObject.getAddressLine(); // Полный адрес
+                document.getElementById(addrId).value = fullAddress;
+
+            } else {
+                showNotification('Адрес не найден', 'error');
+            }
+        }).catch(err => {
+            console.error('Ошибка геокодирования:', err);
+            showNotification('Ошибка поиска по адресу', 'error');
+        });
+    }
+
+    function reverseGeocode(coords, addressFieldId, latitudeFieldId, longitudeFieldId) {
+        ymaps.geocode(coords, { kind: 'house' }).then(function (res) {
+            const firstGeoObject = res.geoObjects.get(0);
+            if (firstGeoObject) {
+                const fullAddress = firstGeoObject.getAddressLine();
+                document.getElementById(addressFieldId).value = fullAddress;
+            }
+            document.getElementById(latitudeFieldId).value = coords[0].toFixed(6);
+            document.getElementById(longitudeFieldId).value = coords[1].toFixed(6);
+        }).catch(err => {
+            console.error('Ошибка обратного геокодирования:', err);
+            document.getElementById(latitudeFieldId).value = coords[0].toFixed(6);
+            document.getElementById(longitudeFieldId).value = coords[1].toFixed(6);
+            showNotification('Не удалось определить адрес по координатам', 'info');
+        });
+    }
+
+    // === Работа с модальными окнами ===
+
+    function openAddModal() {
+        const addModal = document.getElementById('addMarkerModal');
+        if (addModal) addModal.style.display = 'block';
+    }
+
+    function closeAddModal() {
+        const addModal = document.getElementById('addMarkerModal');
+        if (addModal) addModal.style.display = 'none';
+    }
+
+    function openEditModal(markerId) {
+        const editModal = document.getElementById('editMarkerModal');
+        if (!editModal) return;
+
+        fetch(`/admin/markers/api/${markerId}`)
+            .then(response => {
+                if (!response.ok) throw new Error('Не удалось загрузить данные маркера');
+                return response.json();
+            })
+            .then(marker => {
+                document.querySelector('#edit-id').value = marker.id;
+                document.querySelector('#edit-name').value = marker.name || '';
+                document.querySelector('#edit-address').value = marker.address || '';
+                document.querySelector('#edit-latitude').value = marker.latitude || '';
+                document.querySelector('#edit-longitude').value = marker.longitude || '';
+                document.querySelector('#edit-diagnosis').value = marker.diagnosis || '';
+                document.querySelector('#edit-age').value = marker.age || '';
+                document.querySelector('#edit-phone').value = marker.phone || '';
+                document.querySelector('#edit-email').value = marker.email || '';
+
+                if (marker.latitude && marker.longitude) {
+                    const coords = [marker.latitude, marker.longitude];
+                    editMarker.geometry.setCoordinates(coords);
+                    editMap.setCenter(coords, 15);
+                }
+
+                editModal.style.display = 'block';
+            })
+            .catch(error => {
+                console.error("Ошибка при получении данных маркера:", error);
+                showNotification("Ошибка: " + error.message, 'error');
+            });
+    }
+
+    function closeEditModal() {
+        const editModal = document.getElementById('editMarkerModal');
+        if (editModal) editModal.style.display = 'none';
+    }
+
+    window.onclick = function (event) {
+        const addModal = document.getElementById('addMarkerModal');
+        const editModal = document.getElementById('editMarkerModal');
+
+        if (event.target == addModal) closeAddModal();
+        if (event.target == editModal) closeEditModal();
+    }
+
+    // === Уведомления ===
+
+    function showNotification(message, type = 'info') {
+        let notification = document.getElementById('notification');
+        if (!notification) {
+            notification = document.createElement('div');
+            notification.id = 'notification';
+            notification.className = `notification ${type}-notification`;
+            document.body.appendChild(notification);
+        }
+
+        notification.textContent = message;
+        notification.className = `notification ${type}-notification`;
+        notification.style.display = 'block';
+
+        setTimeout(() => {
+            notification.style.display = 'none';
+        }, 5000);
+    }
+
+    function hideNotification(notificationId) {
+        const notification = document.getElementById(notificationId);
+        if (notification) notification.style.display = 'none';
+    }
+
+    function showServerNotifications() {
+        const successMessage = /*[[${successMessage}]]*/ null;
+        const errorMessage = /*[[${errorMessage}]]*/ null;
+        const adminFormSuccess = /*[[${adminFormSuccess}]]*/ null;
+        const adminFormError = /*[[${adminFormError}]]*/ null;
+
+        if (successMessage) showNotification(successMessage, 'success');
+        if (errorMessage) showNotification(errorMessage, 'error');
+        if (adminFormSuccess) showNotification(adminFormSuccess, 'success');
+        if (adminFormError) showNotification(adminFormError, 'error');
+    }
+    function generateReport() {
+        window.location.href = '/api/reports/generate-monthly-report';
+    }
+    const addInfoModal = document.getElementById('addInfoModal');
+    const infoMarkerId = document.getElementById('info-marker-id');
+    const infoPhoneInput = document.getElementById('info-phone');
+    const infoEmailInput = document.getElementById('info-email');
+
+    // Открытие модального окна с данными маркера
+    function performNewAction(markerId) {
+        fetch(`/admin/markers/api/${markerId}`)
+            .then(response => response.json())
+            .then(marker => {
+                infoMarkerId.value = marker.id;
+                infoPhoneInput.value = marker.phone || '';
+                infoEmailInput.value = marker.email || '';
+                addInfoModal.style.display = 'block';
+            })
+            .catch(error => {
+                console.error("Ошибка при получении данных маркера:", error);
+                alert("Не удалось загрузить данные маркера");
+            });
+    }
+    document.getElementById('marker-search').addEventListener('input', function () {
+        const searchTerm = this.value.toLowerCase();
+        const rows = document.querySelectorAll('#markers-table tbody tr.marker-row');
+
+        rows.forEach(row => {
+            const nameCell = row.querySelector('.marker-name');
+            if (nameCell) {
+                const name = nameCell.textContent.toLowerCase();
+                row.style.display = name.includes(searchTerm) ? '' : 'none';
+            }
+        });
+    });
+    /*]]>*/
+</script>
+<script th:src="@{/js/script.js}"></script>
+</body>
+</html>

@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security6">
+<head>
+    <meta charset="UTF-8">
+    <title>Входящие сообщения</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f7f6;
+            color: #333;
+        }
+
+        .chat-container {
+            max-width: 1200px;
+            margin: 20px auto;
+            background: #fff;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 25px;
+        }
+
+        .nav-links {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .nav-links a,
+        .nav-links button {
+            margin: 0 12px;
+            text-decoration: none;
+            color: #3498db;
+            font-weight: 500;
+            padding: 8px 15px;
+            border-radius: 5px;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .nav-links a:hover,
+        .nav-links button:hover {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .nav-links button {
+            background: none;
+            border: 1px solid #3498db;
+            cursor: pointer;
+            font-size: inherit;
+        }
+
+        .form-section {
+            margin-bottom: 30px;
+            padding: 25px;
+            background-color: #fdfdfd;
+            border: 1px solid #ecf0f1;
+            border-radius: 5px;
+        }
+
+        .form-section h3 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            color: #34495e;
+        }
+
+        .chat-list {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .chat-item {
+            margin-bottom: 20px;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .chat-title {
+            cursor: pointer;
+            color: #007bff;
+            font-weight: 500;
+            margin: 0;
+        }
+
+        .chat-title:hover {
+            text-decoration: underline;
+        }
+
+        .chat-messages {
+            margin-left: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+
+        .chatbot-message {
+            margin-bottom: 10px;
+            padding: 8px;
+            border-radius: 4px;
+        }
+
+        .chatbot-message.user {
+            background-color: #e1f0fa;
+        }
+
+        .chatbot-message.admin {
+            background-color: #d4edda;
+        }
+
+        .chatbot-message .message-content {
+            margin: 0;
+        }
+
+        .chatbot-message .timestamp {
+            font-size: 0.85em;
+            color: #666;
+        }
+
+        .chat-input {
+            margin-left: 20px;
+            margin-top: 10px;
+        }
+
+        .chat-input textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 1em;
+            resize: vertical;
+        }
+
+        .chat-input textarea:focus {
+            border-color: #3498db;
+            outline: none;
+            box-shadow: 0 0 0 0.1rem rgba(52, 152, 219, 0.25);
+        }
+
+        .chat-input .admin-char-count {
+            text-align: right;
+            font-size: 0.85em;
+            color: #666;
+            margin-top: 4px;
+        }
+
+        .chat-input .btn-primary {
+            margin-top: 8px;
+            padding: 8px 16px;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            background-color: #28a745;
+            color: white;
+            font-weight: 500;
+            transition: background-color 0.3s;
+        }
+
+        .chat-input .btn-primary:hover {
+            background-color: #218838;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 15px 20px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            max-width: 80%;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        .success-notification {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .error-notification {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .notification-close {
+            margin-left: 15px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="chat-container">
+    <h1>Входящие сообщения</h1>
+    <div class="nav-links">
+        <a th:href="@{/admin}">Вернуться в админ-панель</a>
+        <form th:action="@{/logout}" method="post" style="display: inline;">
+            <button type="submit">Выйти из системы</button>
+        </form>
+    </div>
+
+    <div id="notifications-container"></div>
+
+    <div class="form-section" id="manage-messages-section">
+        <h3>Список чатов</h3>
+        <div class="chat-list" id="chat-list">
+        </div>
+        <div id="chat-template" style="display: none;">
+            <div class="chat-item">
+                <h4 class="chat-title"></h4>
+                <div class="chat-messages" style="display: none;"></div>
+                <div class="chat-input" style="display: none;">
+                    <input type="hidden" class="selected-message-id"/>
+                    <textarea class="admin-message-input" placeholder="Введите ваш ответ..." rows="2"></textarea>
+                    <button class="btn btn-primary send-admin-message">Отправить</button>
+                    <div class="admin-char-count">0 / 500</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script th:inline="javascript">
+    /*<![CDATA[*/
+    document.addEventListener('DOMContentLoaded', function () {
+        loadAdminChats();
+        showServerNotifications();
+    });
+
+    function showNotification(message, type = 'success') {
+        const container = document.getElementById('notifications-container');
+        const notification = document.createElement('div');
+        notification.className = `notification ${type}-notification`;
+        notification.innerHTML = `
+            <span>${message}</span>
+            <span class="notification-close" onclick="this.parentElement.remove()">×</span>
+        `;
+        container.appendChild(notification);
+        setTimeout(() => notification.remove(), 5000);
+    }
+
+    function showServerNotifications() {
+        const successMessage = /*[[${successMessage}]]*/ null;
+        const errorMessage = /*[[${errorMessage}]]*/ null;
+        if (successMessage) showNotification(successMessage, 'success');
+        if (errorMessage) showNotification(errorMessage, 'error');
+    }
+
+    function getCsrfToken() {
+        const meta = document.querySelector('meta[name="_csrf"]');
+        return meta ? meta.getAttribute('content') : '';
+    }
+
+    function loadAdminChats() {
+        const chatList = document.getElementById('chat-list');
+        if (!chatList) {
+            console.error('Element #chat-list not found');
+            return;
+        }
+        chatList.innerHTML = '<p>Загрузка чатов...</p>';
+
+        fetch('/api/chat/admin/chats', {
+            headers: {'X-CSRF-TOKEN': getCsrfToken()}
+        })
+        .then(response => {
+            if (!response.ok) throw new Error(`Failed to fetch chats: ${response.status}`);
+            return response.json();
+        })
+        .then(chats => {
+            if (Object.keys(chats).length === 0) {
+                chatList.innerHTML = '<p>Нет активных чатов.</p>';
+                return;
+            }
+            chatList.innerHTML = '';
+            Object.entries(chats).forEach(([userId, messages]) => {
+                const chatTemplate = document.getElementById('chat-template').children[0].cloneNode(true);
+                chatTemplate.querySelector('.chat-title').textContent = `Чат с ${userId}`;
+                chatTemplate.querySelector('.chat-title').onclick = () => toggleChat(userId);
+
+                const chatMessages = chatTemplate.querySelector('.chat-messages');
+                chatMessages.id = `chat-messages-${userId}`;
+                const chatInput = chatTemplate.querySelector('.chat-input');
+                chatInput.id = `chat-input-${userId}`;
+                const messageInput = chatInput.querySelector('.admin-message-input');
+                messageInput.id = `admin-message-input-${userId}`;
+                const charCount = chatInput.querySelector('.admin-char-count');
+                charCount.id = `admin-char-count-${userId}`;
+                const selectedMessageId = chatInput.querySelector('.selected-message-id');
+                selectedMessageId.id = `selected-message-id-${userId}`;
+                const sendButton = chatInput.querySelector('.send-admin-message');
+                sendButton.onclick = () => sendAdminMessage(userId);
+
+                messageInput.addEventListener('input', function () {
+                    const charCountDisplay = document.getElementById(`admin-char-count-${userId}`);
+                    const charCount = this.value.length;
+                    charCountDisplay.textContent = `${charCount} / 500`;
+                    if (charCount > 500) {
+                        this.value = this.value.substring(0, 500);
+                        charCountDisplay.textContent = '500 / 500';
+                        showNotification('Максимальная длина сообщения — 500 символов', 'error');
+                    }
+                });
+
+                messageInput.addEventListener('keypress', function (event) {
+                    if (event.key === 'Enter' && !event.shiftKey) {
+                        event.preventDefault();
+                        sendAdminMessage(userId);
+                    }
+                });
+
+                messages.forEach(message => {
+                    const sender = message.isAdminResponse ? 'admin' : 'user';
+                    addChatMessageToUI(chatMessages, sender, message.text, message.timestamp, message.id, userId);
+                });
+
+                chatList.appendChild(chatTemplate);
+            });
+        })
+        .catch(error => {
+            console.error('Error loading chats:', error);
+            chatList.innerHTML = '<p>Ошибка загрузки чатов.</p>';
+            showNotification('Ошибка при загрузке списка чатов: ' + error.message, 'error');
+        });
+    }
+
+    function toggleChat(userId) {
+        const chatMessages = document.getElementById(`chat-messages-${userId}`);
+        const chatInput = document.getElementById(`chat-input-${userId}`);
+        if (chatMessages.style.display === 'none') {
+            chatMessages.style.display = 'block';
+            chatInput.style.display = 'block';
+        } else {
+            chatMessages.style.display = 'none';
+            chatInput.style.display = 'none';
+        }
+    }
+
+    function addChatMessageToUI(chatMessages, sender, text, timestamp, messageId, userId) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `chatbot-message ${sender}`;
+        messageDiv.setAttribute('data-message-id', messageId);
+        const date = new Date(timestamp);
+        const formattedTimestamp = date.toLocaleString('ru-RU', {
+            day: 'numeric',
+            month: 'short',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+        messageDiv.innerHTML = `
+            <div class="message-content">
+                <strong>${sender === 'user' ? 'Пользователь (' + userId + ')' : 'Администратор'}</strong>
+                <p>${text}</p>
+                <span class="timestamp">${formattedTimestamp}</span>
+            </div>
+        `;
+        messageDiv.onclick = () => selectMessageForReply(userId, messageId);
+        chatMessages.appendChild(messageDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function selectMessageForReply(userId, messageId) {
+        document.getElementById(`selected-message-id-${userId}`).value = messageId;
+        document.getElementById(`admin-message-input-${userId}`).focus();
+    }
+
+    function sendAdminMessage(userId) {
+        const messageId = document.getElementById(`selected-message-id-${userId}`).value;
+        const text = document.getElementById(`admin-message-input-${userId}`).value.trim();
+
+        if (!messageId) {
+            showNotification('Пожалуйста, выберите сообщение для ответа', 'error');
+            return;
+        }
+        if (!text) {
+            showNotification('Пожалуйста, введите текст ответа', 'error');
+            return;
+        }
+
+        fetch('/api/chat/admin/messages/reply', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': getCsrfToken()
+            },
+            body: JSON.stringify({ messageId: messageId, text: text })
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(err => {
+                    throw new Error(err.error || 'Failed to send reply');
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            showNotification('Ответ успешно отправлен', 'success');
+            document.getElementById(`admin-message-input-${userId}`).value = '';
+            document.getElementById(`admin-char-count-${userId}`).textContent = '0 / 500';
+            document.getElementById(`selected-message-id-${userId}`).value = '';
+            loadAdminChats();
+        })
+        .catch(error => {
+            console.error('Error sending reply:', error);
+            showNotification(error.message || 'Ошибка при отправке ответа', 'error');
+        });
+    }
+    /*]]>*/
+</script>
+<script th:src="@{/js/script.js}"></script>
+</body>
+</html>

@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security6">
+<head>
+    <meta charset="UTF-8">
+    <title>Социальный навигатор</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://api-maps.yandex.ru/2.1/?apikey=c346c275-4f93-44c4-8aa1-f67dc426e367&lang=ru_RU" type="text/javascript"></script>
+</head>
+<body>
+    <!-- Сайдбар (фильтры) -->
+    <div id="sidebar" class="sidebar">
+        <h3>Социальный<br>навигатор</h3>
+        <div class="search-bar-container-sidebar">
+            <input type="text" class="search-input" placeholder="Поиск организации">
+            <i class="fas fa-search search-icon-in-input"></i>
+        </div>
+        <a href="#" class="how-to-search-link-sidebar">
+            <i class="fas fa-question-circle"></i> Как искать?
+        </a>
+        <div class="filter-section">
+            <h4>Категории услуг</h4>
+            <div class="filter-category service-categories-list-custom" data-category="diagnosis">
+                <!-- Образовательные услуги -->
+                <div class="filter-item service-category-item color-scheme-blue" data-value="educational">
+                    <div class="service-icon-wrapper"><i class="fas fa-book"></i></div>
+                    <div class="service-text-wrapper"><span class="service-title">Образовательные услуги</span><span class="service-subtitle">Возрастные группы</span></div>
+                    <i class="fas fa-chevron-right service-arrow"></i>
+                </div>
+                <div class="filter-subcategory" data-parent="educational">
+                    <div class="filter-subitem" data-value="0-3">0-3</div><div class="filter-subitem" data-value="4-6">4-6</div><div class="filter-subitem" data-value="7-12">7-12</div><div class="filter-subitem" data-value="13-17">13-17</div><div class="filter-subitem" data-value="18-23">18-23</div><div class="filter-subitem" data-value="24+">24 и старше</div>
+                </div>
+                <!-- Социальные услуги -->
+                <div class="filter-item service-category-item color-scheme-teal" data-value="social">
+                    <div class="service-icon-wrapper"><i class="fas fa-hands-helping"></i></div>
+                    <div class="service-text-wrapper"><span class="service-title">Социальные услуги</span><span class="service-subtitle">Возрастные группы</span></div>
+                    <i class="fas fa-chevron-right service-arrow"></i>
+                </div>
+                <div class="filter-subcategory" data-parent="social">
+                    <div class="filter-subitem" data-value="0-3">0-3</div><div class="filter-subitem" data-value="4-6">4-6</div><div class="filter-subitem" data-value="7-12">7-12</div><div class="filter-subitem" data-value="13-17">13-17</div><div class="filter-subitem" data-value="18-23">18-23</div><div class="filter-subitem" data-value="24+">24 и старше</div>
+                </div>
+                <!-- Медицинские услуги -->
+                <div class="filter-item service-category-item color-scheme-green" data-value="medical">
+                    <div class="service-icon-wrapper"><i class="fas fa-hospital"></i></div>
+                    <div class="service-text-wrapper"><span class="service-title">Медицинские услуги</span><span class="service-subtitle">Возрастные группы</span></div>
+                    <i class="fas fa-chevron-right service-arrow"></i>
+                </div>
+                <div class="filter-subcategory" data-parent="medical">
+                    <div class="filter-subitem" data-value="0-3">0-3</div><div class="filter-subitem" data-value="4-6">4-6</div><div class="filter-subitem" data-value="7-12">7-12</div><div class="filter-subitem" data-value="13-17">13-17</div><div class="filter-subitem" data-value="18-23">18-23</div><div class="filter-subitem" data-value="24+">24 и старше</div>
+                </div>
+                <!-- Юридические услуги -->
+                <div class="filter-item service-category-item color-scheme-purple" data-value="legal">
+                    <div class="service-icon-wrapper"><i class="fas fa-gavel"></i></div>
+                    <div class="service-text-wrapper"><span class="service-title">Юридические услуги</span><span class="service-subtitle">Возрастные группы</span></div>
+                    <i class="fas fa-chevron-right service-arrow"></i>
+                </div>
+                <div class="filter-subcategory" data-parent="legal">
+                    <div class="filter-subitem" data-value="0-3">0-3</div><div class="filter-subitem" data-value="4-6">4-6</div><div class="filter-subitem" data-value="7-12">7-12</div><div class="filter-subitem" data-value="13-17">13-17</div><div class="filter-subitem" data-value="18-23">18-23</div><div class="filter-subitem" data-value="24+">24 и старше</div>
+                </div>
+                <!-- Психологические услуги -->
+                <div class="filter-item service-category-item color-scheme-red" data-value="psychological">
+                    <div class="service-icon-wrapper"><i class="fas fa-brain"></i></div>
+                    <div class="service-text-wrapper"><span class="service-title">Психологические услуги</span><span class="service-subtitle">Возрастные группы</span></div>
+                    <i class="fas fa-chevron-right service-arrow"></i>
+                </div>
+                <div class="filter-subcategory" data-parent="psychological">
+                    <div class="filter-subitem" data-value="0-3">0-3</div><div class="filter-subitem" data-value="4-6">4-6</div><div class="filter-subitem" data-value="7-12">7-12</div><div class="filter-subitem" data-value="13-17">13-17</div><div class="filter-subitem" data-value="18-23">18-23</div><div class="filter-subitem" data-value="24+">24 и старше</div>
+                </div>
+                <!-- Услуги на коммерческой основе -->
+                <div class="filter-item service-category-item color-scheme-orange" data-value="commercial">
+                    <div class="service-icon-wrapper"><i class="fas fa-money-bill"></i></div>
+                    <div class="service-text-wrapper"><span class="service-title">Услуги на коммерческой основе</span><span class="service-subtitle">Возрастные группы</span></div>
+                    <i class="fas fa-chevron-right service-arrow"></i>
+                </div>
+                <div class="filter-subcategory" data-parent="commercial">
+                    <div class="filter-subitem" data-value="0-3">0-3</div><div class="filter-subitem" data-value="4-6">4-6</div><div class="filter-subitem" data-value="7-12">7-12</div><div class="filter-subitem" data-value="13-17">13-17</div><div class="filter-subitem" data-value="18-23">18-23</div><div class="filter-subitem" data-value="24+">24 и старше</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="main-content">
+        <button id="toggle-sidebar">☰</button>
+        <button id="auth-action-button" class="auth-button">👤</button>
+
+
+        <!-- Контейнер для уведомлений -->
+        <div id="notifications-container" style="position: fixed; top: 20px; right: 20px; z-index: 1050;"></div>
+
+        <!-- Информационная панель организации -->
+        <div id="info-panel-organization" class="info-panel">
+            <button id="info-panel-close-btn" class="info-panel-close">×</button>
+            <div class="info-panel-header">
+                <div id="info-panel-image-placeholder" class="info-image-placeholder">
+                    <span>Фото</span>
+                </div>
+                <h3 id="info-panel-name">Название организации</h3>
+            </div>
+            <div class="info-panel-tabs">
+                <button class="info-tab active" data-tab="info">Информация</button>
+                <button class="info-tab" data-tab="reviews">Отзывы</button>
+            </div>
+            <div id="info-tab-content" class="info-tab-content active">
+                <div class="info-panel-body">
+                    <p><strong>Адрес:</strong> <span id="info-panel-address"></span></p>
+                    <p><strong>Телефон:</strong> <span id="info-panel-phone"> (нет данных)</span></p>
+                    <p><strong>Почта:</strong> <span id="info-panel-email"></span></p>
+                    <p><strong>Категория:</strong> <span id="info-panel-diagnosis"></span></p>
+                    <p><strong>Возраст:</strong> <span id="info-panel-age"></span></p>
+                    <p>
+                        <i class="fas fa-eye"></i>
+                        <span id="info-panel-views">0</span> просмотров
+                    </p>
+                </div>
+            </div>
+            <div id="reviews-tab-content" class="info-tab-content">
+                <div class="reviews-container">
+                    <div class="reviews-list" id="reviews-list">
+                        <!-- Отзывы будут добавляться сюда -->
+                    </div>
+                    <div class="add-review-form">
+                        <h4>Оставить отзыв</h4>
+                        <textarea id="review-text" placeholder="Ваш отзыв..." rows="4"></textarea>
+                        <div id="char-count" style="text-align: right; font-size: 0.85em; color: #666;">
+                            0 / 500
+                        </div>
+                        <div class="rating-container">
+                            <span>Оценка:</span>
+                            <div class="rating-stars" id="rating-stars">
+                                <i class="fas fa-star" data-rating="1"></i>
+                                <i class="fas fa-star" data-rating="2"></i>
+                                <i class="fas fa-star" data-rating="3"></i>
+                                <i class="fas fa-star" data-rating="4"></i>
+                                <i class="fas fa-star" data-rating="5"></i>
+                            </div>
+                        </div>
+                        <button id="submit-review" class="btn">Отправить отзыв</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="fillProfileNotification"
+             style="display:none; position: fixed; top: 70px; right: 20px; background-color: #fff3cd; color: #856404; padding: 15px; border: 1px solid #ffeeba; border-radius: .25rem; z-index: 1050; box-shadow: 0 .5rem 1rem rgba(0,0,0,.15);">
+            Пожалуйста, <a th:href="@{/cabinet}" style="color: #007bff; text-decoration: underline;">заполните ваш профиль</a> для получения более точных рекомендаций.
+            <button onclick="document.getElementById('fillProfileNotification').style.display='none'"
+                    style="margin-left: 15px; background: none; border: none; font-size: 1.2rem; cursor: pointer; color: #856404; float: right; line-height: 1;">×</button>
+        </div>
+
+        <!-- Чат-бот -->
+        <div id="chatbot-container" class="chatbot-container">
+            <div class="chatbot-toggle">
+                <i class="fas fa-comment-dots"></i>
+            </div>
+            <div class="chatbot-window">
+                <div class="chatbot-header">
+                    <h4>Помощь</h4>
+                    <button class="chatbot-close">×</button>
+                </div>
+                <div class="chatbot-messages" id="chatbot-messages">
+                    <div class="chatbot-message bot">
+                        Здравствуйте! Чем могу помочь?
+                    </div>
+                </div>
+                <div class="chatbot-input">
+                    <textarea id="chatbot-text" placeholder="Введите ваше сообщение..." rows="2"></textarea>
+                    <button id="chatbot-send" class="btn">Отправить</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="map-container" style="position: relative;">
+            <div id="map" style="width: 100%; height: 100vh;"></div>
+            <button type="button" id="locate-user-button" class="locate-user-button">📍 Моё местоположение</button>
+        </div>
+    </div>
+
+    <!-- Модальное окно для просмотра изображения -->
+    <div id="imageModal" class="modal">
+        <span class="close-btn" onclick="closeImageModal()">×</span>
+        <img class="modal-content" id="modalImage">
+    </div>
+
+    <style>
+        /* Стили для модального окна */
+        .modal {
+            display: none; /* Скрыто по умолчанию */
+            position: fixed;
+            z-index: 9999;
+            padding-top: 60px;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.8); /* Черный фон с прозрачностью */
+        }
+
+        .modal-content {
+            margin: auto;
+            display: block;
+            max-width: 90%;
+            max-height: 80vh;
+            border-radius: 8px;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 20px;
+            right: 35px;
+            color: white;
+            font-size: 40px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close-btn:hover,
+        .close-btn:focus {
+            color: #bbb;
+            text-decoration: none;
+            cursor: pointer;
+        }
+    </style>
+    <script>
+        // Функция открытия модального окна с изображением
+        function openImageModal(imageUrl) {
+            const modal = document.getElementById('imageModal');
+            const modalImg = document.getElementById('modalImage');
+            if (modal && modalImg) {
+                modal.style.display = "block";
+                modalImg.src = imageUrl;
+            }
+        }
+
+        // Функция закрытия модального окна
+        function closeImageModal() {
+            const modal = document.getElementById('imageModal');
+            if (modal) {
+                modal.style.display = "none";
+            }
+        }
+
+        // Закрытие окна при клике вне изображения
+        window.addEventListener('click', function(event) {
+            const modal = document.getElementById('imageModal');
+            if (modal && event.target === modal) {
+                modal.style.display = "none";
+            }
+        });
+    </script>
+
+    <script th:src="@{/js/script.js}"></script>
+    <script th:inline="javascript" th:if="${showFillProfileNotification == true}">
+        /*<![CDATA[*/
+        document.addEventListener('DOMContentLoaded', function() {
+            var notificationDiv = document.getElementById('fillProfileNotification');
+            if (notificationDiv) {
+                notificationDiv.style.display = 'block';
+            }
+        });
+        /*]]>*/
+    </script>
+</body>
+</html>
