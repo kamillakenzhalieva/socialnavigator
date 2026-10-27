@@ -34,7 +34,6 @@ public class ReportController {
 
         XWPFDocument document = new XWPFDocument();
 
-        // Заголовок
         XWPFParagraph title = document.createParagraph();
         title.setAlignment(ParagraphAlignment.CENTER);
         XWPFRun titleRun = title.createRun();
@@ -42,7 +41,6 @@ public class ReportController {
         titleRun.setBold(true);
         titleRun.setFontSize(20);
 
-        // Подзаголовок дата
         XWPFParagraph subtitle = document.createParagraph();
         subtitle.setAlignment(ParagraphAlignment.CENTER);
         XWPFRun subtitleRun = subtitle.createRun();
@@ -54,7 +52,6 @@ public class ReportController {
             addMarkerSection(document, marker);
         }
 
-        // Отправляем файл пользователю
         String filename = "monthly_report_" + LocalDate.now().toString() + ".docx";
         response.setContentType("application/vnd.openxmlformats-officedocument.wordprocessingml.document");
         response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
@@ -64,23 +61,19 @@ public class ReportController {
     }
 
     private void addMarkerSection(XWPFDocument doc, Marker marker) {
-        // Заголовок маркера
         XWPFParagraph heading = doc.createParagraph();
         XWPFRun run = heading.createRun();
         run.setText("Организация: " + marker.getName());
         run.setBold(true);
         run.setFontSize(16);
 
-        // Адрес
         XWPFParagraph address = doc.createParagraph();
         address.createRun().setText("Адрес: " + (marker.getAddress() != null ? marker.getAddress() : "(не указан)"));
 
-        // Общее количество просмотров
         int totalViews = marker.getViews();
         XWPFParagraph views = doc.createParagraph();
         views.createRun().setText("Общее количество просмотров: " + totalViews);
 
-        // Статистика по дням
         List<Object[]> dailyStats = markerViewLogRepository.countViewsByDate(marker.getId());
 
         if (!dailyStats.isEmpty()) {
@@ -96,7 +89,6 @@ public class ReportController {
             }
         }
 
-        // Разделитель
         XWPFParagraph divider = doc.createParagraph();
         divider.setSpacingAfter(10);
     }

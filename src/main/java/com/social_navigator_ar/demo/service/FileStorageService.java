@@ -21,7 +21,6 @@ public class FileStorageService {
     @Value("${upload.path}")
     private String uploadDir;
 
-    // Размеры для обрезки
     private static final int TARGET_WIDTH = 800;
     private static final int TARGET_HEIGHT = 600;
 
@@ -43,21 +42,17 @@ public class FileStorageService {
             throw new IllegalArgumentException("Не удалось загрузить пустой файл.");
         }
 
-        // Очистка имени файла
         String originalFilename = StringUtils.cleanPath(file.getOriginalFilename());
         if (originalFilename == null || originalFilename.isBlank()) {
             throw new IllegalArgumentException("Имя файла недопустимо");
         }
 
-        // Генерация уникального имени
         String safeFilename = originalFilename.replaceAll("[^a-zA-Z0-9.\\-]", "_");
         String uniqueFilename = UUID.randomUUID() + "-" + safeFilename;
 
-        // Обрезка изображения
         BufferedImage originalImage = ImageIO.read(new ByteArrayInputStream(file.getBytes()));
         BufferedImage resizedImage = resizeImage(originalImage, TARGET_WIDTH, TARGET_HEIGHT);
 
-        // Сохраняем обрезанное изображение
         String fileExtension = getFileExtension(safeFilename);
         Path targetLocation = Paths.get(uploadDir, uniqueFilename);
 
@@ -66,7 +61,6 @@ public class FileStorageService {
         return "/uploads/" + uniqueFilename;
     }
 
-    // Метод обрезки изображения
     private BufferedImage resizeImage(BufferedImage originalImage, int width, int height) {
         BufferedImage resizedImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
         resizedImage.getGraphics().drawImage(
@@ -78,7 +72,6 @@ public class FileStorageService {
         return resizedImage;
     }
 
-    // Получаем расширение файла
     private String getFileExtension(String filename) {
         int dotIndex = filename.lastIndexOf('.');
         return (dotIndex == -1) ? "png" : filename.substring(dotIndex + 1);

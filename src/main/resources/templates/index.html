@@ -5,6 +5,8 @@
     <title>Социальный навигатор</title>
     <link rel="stylesheet" th:href="@{/css/style.css}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
     <script src="https://api-maps.yandex.ru/2.1/?apikey=c346c275-4f93-44c4-8aa1-f67dc426e367&lang=ru_RU" type="text/javascript"></script>
 </head>
 <body>
@@ -89,10 +91,17 @@
 
         <!-- Информационная панель организации -->
         <div id="info-panel-organization" class="info-panel">
-            <button id="info-panel-close-btn" class="info-panel-close">×</button>
             <div class="info-panel-header">
-                <div id="info-panel-image-placeholder" class="info-image-placeholder">
-                    <span>Фото</span>
+                <div id="info-panel-image-placeholder" class="info-image-carousel">
+                    <div class="info-image-empty"><span>Фото</span></div>
+                    <img class="info-carousel-img" id="info-carousel-img" style="display:none;">
+                    <button type="button" class="carousel-arrow carousel-arrow-prev" id="info-carousel-prev" style="display:none;">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <button type="button" class="carousel-arrow carousel-arrow-next" id="info-carousel-next" style="display:none;">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                    <div class="carousel-dots" id="info-carousel-dots"></div>
                 </div>
                 <h3 id="info-panel-name">Название организации</h3>
             </div>
@@ -111,6 +120,9 @@
                         <i class="fas fa-eye"></i>
                         <span id="info-panel-views">0</span> просмотров
                     </p>
+                    <button id="info-panel-edit-btn" class="info-panel-edit-btn" style="display:none;" title="Редактировать организацию">
+                        <i class="fas fa-pen"></i> Редактировать организацию
+                    </button>
                 </div>
             </div>
             <div id="reviews-tab-content" class="info-tab-content">
@@ -139,6 +151,11 @@
                 </div>
             </div>
         </div>
+
+        <!-- Стрелка скрытия панели — отдельный фиксированный элемент, не скроллится вместе с панелью -->
+        <button id="info-panel-close-btn" class="info-panel-close" title="Скрыть панель">
+            <i class="fas fa-chevron-left"></i>
+        </button>
 
         <div id="fillProfileNotification"
              style="display:none; position: fixed; top: 70px; right: 20px; background-color: #fff3cd; color: #856404; padding: 15px; border: 1px solid #ffeeba; border-radius: .25rem; z-index: 1050; box-shadow: 0 .5rem 1rem rgba(0,0,0,.15);">
@@ -172,82 +189,133 @@
         <div id="map-container" style="position: relative;">
             <div id="map" style="width: 100%; height: 100vh;"></div>
             <button type="button" id="locate-user-button" class="locate-user-button">📍 Моё местоположение</button>
+            <button type="button" id="admin-edit-mode-button" class="admin-edit-mode-button" style="display:none;">
+                <i class="fas fa-pen"></i> Режим редактирования
+            </button>
+            <div id="edit-mode-hint" class="edit-mode-hint" style="display:none;">
+                Кликните по карте, чтобы добавить организацию, или по маркеру, чтобы изменить/удалить его
+            </div>
         </div>
     </div>
 
-    <!-- Модальное окно для просмотра изображения -->
-    <div id="imageModal" class="modal">
-        <span class="close-btn" onclick="closeImageModal()">×</span>
+    <!-- Модальное окно для просмотра изображения на весь экран -->
+    <div id="imageModal" class="modal fullscreen-image-modal">
+        <span class="close-btn" id="image-modal-close-btn">×</span>
+        <button type="button" class="modal-arrow modal-arrow-prev" id="image-modal-prev">
+            <i class="fas fa-chevron-left"></i>
+        </button>
         <img class="modal-content" id="modalImage">
+        <button type="button" class="modal-arrow modal-arrow-next" id="image-modal-next">
+            <i class="fas fa-chevron-right"></i>
+        </button>
+        <div class="fullscreen-image-caption">
+            <div class="fullscreen-image-caption-name" id="image-modal-name"></div>
+            <div class="fullscreen-image-caption-address" id="image-modal-address"></div>
+        </div>
+        <div class="fullscreen-image-dots" id="image-modal-dots"></div>
     </div>
 
-    <style>
-        /* Стили для модального окна */
-        .modal {
-            display: none; /* Скрыто по умолчанию */
-            position: fixed;
-            z-index: 9999;
-            padding-top: 60px;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0,0,0,0.8); /* Черный фон с прозрачностью */
-        }
+    <!-- Модальное окно добавления/редактирования организации (режим редактирования карты) -->
+    <div id="markerFormModal" class="modal marker-form-modal">
+        <div class="marker-form-modal-content">
+            <span class="close-btn" id="markerFormCloseBtn">×</span>
+            <h3 id="markerFormTitle">Новая организация</h3>
+            <form id="markerForm">
+                <input type="hidden" id="markerFormId">
+                <input type="hidden" id="markerFormLat">
+                <input type="hidden" id="markerFormLng">
+                <div class="form-group">
+                    <label for="markerFormName">Название*</label>
+                    <input type="text" id="markerFormName" maxlength="255" required>
+                </div>
+                <div class="form-group">
+                    <label for="markerFormAddress">Адрес</label>
+                    <input type="text" id="markerFormAddress" maxlength="255">
+                </div>
+                <div class="form-group">
+                    <label for="markerFormDiagnosis">Категория услуги</label>
+                    <select id="markerFormDiagnosis">
+                        <option value="">-- Не выбрано --</option>
+                        <option value="educational">Образовательные</option>
+                        <option value="social">Социальные</option>
+                        <option value="medical">Медицинские</option>
+                        <option value="legal">Юридические</option>
+                        <option value="psychological">Психологические</option>
+                        <option value="commercial">Коммерческие</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="markerFormAge">Возрастная группа</label>
+                    <select id="markerFormAge">
+                        <option value="">-- Не выбрано --</option>
+                        <option value="0-3">0-3 года</option>
+                        <option value="4-6">4-6 лет</option>
+                        <option value="7-12">7-12 лет</option>
+                        <option value="13-17">13-17 лет</option>
+                        <option value="18-23">18-23 года</option>
+                        <option value="24+">24 года и старше</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="markerFormPhone">Телефон</label>
+                    <input type="text" id="markerFormPhone" maxlength="20">
+                </div>
+                <div class="form-group">
+                    <label for="markerFormEmail">Email</label>
+                    <input type="email" id="markerFormEmail" maxlength="100">
+                </div>
+                <div class="form-group">
+                    <label>Фотографии</label>
+                    <div id="markerFormExistingImages" class="marker-form-existing-images"></div>
+                    <input type="file" id="markerFormPhotos" accept="image/*" multiple>
+                    <div class="form-hint">После выбора фото откроется окно обрезки под размер карточки — полная версия фото сохранится и будет доступна в полноэкранном просмотре.</div>
+                </div>
+                <div id="markerFormError" class="validation-error" style="display:none;"></div>
+                <div class="marker-form-actions">
+                    <button type="button" class="btn" id="markerFormCancelBtn">Отмена</button>
+                    <button type="submit" class="btn btn-primary" id="markerFormSubmitBtn">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-        .modal-content {
-            margin: auto;
-            display: block;
-            max-width: 90%;
-            max-height: 80vh;
-            border-radius: 8px;
-        }
+    <!-- Модальное окно обрезки фото под размер карточки -->
+    <div id="cropPhotoModal" class="modal crop-modal">
+        <div class="crop-modal-content">
+            <h3>Обрезка фото</h3>
+            <p class="crop-modal-hint">Выделите область, потяните за края рамки, приблизьте колёсиком мыши. Так фото будет выглядеть на карточке организации.</p>
+            <div class="crop-modal-canvas-wrap">
+                <img id="cropModalImage" alt="Обрезка фото">
+            </div>
+            <div class="crop-modal-actions">
+                <button type="button" class="btn" id="cropModalSkipBtn">Пропустить это фото</button>
+                <button type="button" class="btn btn-primary" id="cropModalConfirmBtn">Обрезать и добавить</button>
+            </div>
+        </div>
+    </div>
 
-        .close-btn {
-            position: absolute;
-            top: 20px;
-            right: 35px;
-            color: white;
-            font-size: 40px;
-            font-weight: bold;
-            cursor: pointer;
-        }
+    <!-- Модальное окно выбора действия при клике на маркер в режиме редактирования -->
+    <div id="markerActionModal" class="modal marker-action-modal">
+        <div class="marker-action-modal-content">
+            <h4 id="markerActionTitle"></h4>
+            <div class="marker-action-buttons">
+                <button type="button" class="btn btn-primary" id="markerActionEditBtn"><i class="fas fa-pen"></i> Изменить</button>
+                <button type="button" class="btn btn-danger" id="markerActionDeleteBtn"><i class="fas fa-trash"></i> Удалить</button>
+            </div>
+            <button type="button" class="btn marker-action-cancel" id="markerActionCancelBtn">Отмена</button>
+        </div>
+    </div>
 
-        .close-btn:hover,
-        .close-btn:focus {
-            color: #bbb;
-            text-decoration: none;
-            cursor: pointer;
-        }
-    </style>
-    <script>
-        // Функция открытия модального окна с изображением
-        function openImageModal(imageUrl) {
-            const modal = document.getElementById('imageModal');
-            const modalImg = document.getElementById('modalImage');
-            if (modal && modalImg) {
-                modal.style.display = "block";
-                modalImg.src = imageUrl;
-            }
-        }
-
-        // Функция закрытия модального окна
-        function closeImageModal() {
-            const modal = document.getElementById('imageModal');
-            if (modal) {
-                modal.style.display = "none";
-            }
-        }
-
-        // Закрытие окна при клике вне изображения
-        window.addEventListener('click', function(event) {
-            const modal = document.getElementById('imageModal');
-            if (modal && event.target === modal) {
-                modal.style.display = "none";
-            }
-        });
-    </script>
+    <!-- Модальное окно подтверждения удаления -->
+    <div id="confirmDeleteModal" class="modal confirm-modal">
+        <div class="confirm-modal-content">
+            <p id="confirmDeleteText">Удалить эту организацию с карты? Это действие необратимо.</p>
+            <div class="confirm-modal-actions">
+                <button type="button" class="btn" id="confirmDeleteCancelBtn">Отмена</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteOkBtn">Удалить</button>
+            </div>
+        </div>
+    </div>
 
     <script th:src="@{/js/script.js}"></script>
     <script th:inline="javascript" th:if="${showFillProfileNotification == true}">

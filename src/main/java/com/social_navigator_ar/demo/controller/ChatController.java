@@ -1,7 +1,9 @@
 package com.social_navigator_ar.demo.controller;
 
 import com.social_navigator_ar.demo.model.Message;
+import com.social_navigator_ar.demo.repository.LoginRepository;
 import com.social_navigator_ar.demo.repository.MessageRepository;
+import com.social_navigator_ar.demo.service.AdminNotificationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +22,12 @@ public class ChatController {
     @Autowired
     private MessageRepository messageRepository;
 
+    @Autowired
+    private LoginRepository loginRepository;
+
+    @Autowired
+    private AdminNotificationService adminNotificationService;
+
     @PostMapping("/messages")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Message> sendMessage(@RequestBody Message message, Principal principal) {
@@ -33,6 +41,16 @@ public class ChatController {
         message.setParentMessageId(null);
         Message savedMessage = messageRepository.save(message);
         System.out.println("Sent user message: " + savedMessage);
+
+        String senderName = loginRepository.findByEmail(principal.getName())
+                .map(login -> login.getName())
+                .orElse(principal.getName());
+        String preview = AdminNotificationService.truncate(message.getText(), 120);
+        adminNotificationService.record(
+                "MESSAGE",
+                "Новое сообщение от пользователя " + senderName + (preview.isEmpty() ? "" : ": " + preview)
+        );
+
         return ResponseEntity.ok(savedMessage);
     }
 
@@ -59,7 +77,7 @@ public class ChatController {
                 .orElseThrow(() -> new IllegalArgumentException("Сообщение не найдено"));
 
         Message reply = new Message();
-        reply.setUserId(originalMessage.getUserId()); // Устанавливаем userId оригинального сообщения
+        reply.setUserId(originalMessage.getUserId());
         reply.setText(replyRequest.getText());
         reply.setTimestamp(LocalDateTime.now());
         reply.setIsAdminResponse(true);

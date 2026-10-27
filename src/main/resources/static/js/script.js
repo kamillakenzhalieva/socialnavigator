@@ -49,6 +49,8 @@ document.addEventListener('DOMContentLoaded', function () {
                             return response.json();
                         })
                         .then(adminData => {
+                            isAdmin = !!adminData.isAdmin;
+                            revealAdminUI();
                             authActionButton.onclick = function () {
                                 window.location.href = adminData.isAdmin ? '/admin/panel' : '/cabinet';
                             };
@@ -87,6 +89,21 @@ document.addEventListener('DOMContentLoaded', function () {
         commercial: 'Услуги на коммерческой основе'
     };
 
+    // --- Состояние для админ-функций (редактирование карты и карточек) ---
+    let isAdmin = false;
+    const markersById = {}; // id -> { placemark, data }
+    let editModeActive = false;
+    let pendingDeleteId = null;
+    let currentCardImages = [];
+    let currentCardImageIndex = 0;
+
+    function revealAdminUI() {
+        const editModeButton = document.getElementById('admin-edit-mode-button');
+        if (editModeButton) editModeButton.style.display = isAdmin ? 'inline-block' : 'none';
+        const editBtn = document.getElementById('info-panel-edit-btn');
+        if (editBtn) editBtn.style.display = (isAdmin && currentMarkerData.id) ? 'inline-flex' : 'none';
+    }
+
     // --- Логика Яндекс.Карт ---
     let map; // Объявляем map в более широкой области видимости
     ymaps.ready(function () {
@@ -105,10 +122,20 @@ document.addEventListener('DOMContentLoaded', function () {
 
             placemark.events.add('click', function (e) {
                 const clickedMarkerData = e.get('target').properties.get('markerData');
-                showInfoPanel(clickedMarkerData);
+                if (editModeActive && isAdmin) {
+                    openMarkerActionModal(clickedMarkerData);
+                } else {
+                    showInfoPanel(clickedMarkerData);
+                }
             });
 
             map.geoObjects.add(placemark);
+
+            if (markerData.id != null) {
+                markersById[markerData.id] = { placemark: placemark, data: markerData };
+            }
+
+            return placemark;
         }
 
         fetch('/api/map-points')
@@ -294,12 +321,427 @@ document.addEventListener('DOMContentLoaded', function () {
                 }, 350);
             });
         }
+
+        // ==================== Режим редактирования карты (только для админов) ====================
+        const editModeButton = document.getElementById('admin-edit-mode-button');
+        const editModeHint = document.getElementById('edit-mode-hint');
+        const mapContainerEl = document.getElementById('map-container');
+
+        function setEditMode(active) {
+            editModeActive = active;
+            if (editModeButton) {
+                editModeButton.classList.toggle('active', active);
+                editModeButton.innerHTML = active
+                    ? '<i class="fas fa-times"></i> Выйти из редактирования'
+                    : '<i class="fas fa-pen"></i> Режим редактирования';
+            }
+            if (editModeHint) editModeHint.style.display = active ? 'block' : 'none';
+            if (mapContainerEl) mapContainerEl.classList.toggle('edit-mode-active', active);
+            if (active && infoPanel && infoPanel.classList.contains('active')) {
+                hideInfoPanel();
+            }
+        }
+
+        if (editModeButton) {
+            editModeButton.addEventListener('click', function () {
+                if (!isAdmin) return;
+                setEditMode(!editModeActive);
+            });
+        }
+
+        map.events.add('click', function (e) {
+            if (!editModeActive || !isAdmin) return;
+            const coords = e.get('coords');
+            if (!coords) return;
+            openMarkerFormModal({ mode: 'create', lat: coords[0], lng: coords[1] });
+
+            // Обратное геокодирование: подставляем адрес по клику на карту
+            ymaps.geocode(coords, { kind: 'house' })
+                .then(function (res) {
+                    const firstGeoObject = res.geoObjects.get(0);
+                    if (firstGeoObject && markerFormAddress && markerFormMode === 'create') {
+                        markerFormAddress.value = firstGeoObject.getAddressLine();
+                    }
+                })
+                .catch(function (err) {
+                    console.error('Ошибка обратного геокодирования:', err);
+                });
+        });
+
+        // ---- Модальное окно формы маркера (создание/редактирование) ----
+        const markerFormModal = document.getElementById('markerFormModal');
+        const markerForm = document.getElementById('markerForm');
+        const markerFormTitle = document.getElementById('markerFormTitle');
+        const markerFormId = document.getElementById('markerFormId');
+        const markerFormLat = document.getElementById('markerFormLat');
+        const markerFormLng = document.getElementById('markerFormLng');
+        const markerFormName = document.getElementById('markerFormName');
+        const markerFormAddress = document.getElementById('markerFormAddress');
+        const markerFormDiagnosis = document.getElementById('markerFormDiagnosis');
+        const markerFormAge = document.getElementById('markerFormAge');
+        const markerFormPhone = document.getElementById('markerFormPhone');
+        const markerFormEmail = document.getElementById('markerFormEmail');
+        const markerFormPhotos = document.getElementById('markerFormPhotos');
+        const markerFormExistingImages = document.getElementById('markerFormExistingImages');
+        const markerFormError = document.getElementById('markerFormError');
+        const markerFormCloseBtn = document.getElementById('markerFormCloseBtn');
+        const markerFormCancelBtn = document.getElementById('markerFormCancelBtn');
+
+        let markerFormMode = 'create';
+        let markerFormKeptImages = [];      // полные версии уже сохранённых фото
+        let markerFormKeptThumbnails = [];  // обрезанные версии уже сохранённых фото (тот же индекс)
+        let markerFormPendingPhotos = [];   // новые фото: [{ original: File, croppedBlob: Blob }]
+
+        function closeMarkerFormModal() {
+            if (markerFormModal) markerFormModal.style.display = 'none';
+        }
+
+        function renderExistingImagesInForm() {
+            if (!markerFormExistingImages) return;
+            markerFormExistingImages.innerHTML = '';
+
+            markerFormKeptImages.forEach((url, idx) => {
+                const thumbUrl = markerFormKeptThumbnails[idx] || url;
+                const thumb = document.createElement('div');
+                thumb.className = 'existing-image-thumb';
+                thumb.innerHTML = `
+                    <img src="${thumbUrl}" alt="Фото">
+                    <button type="button" class="remove-existing-image" data-kind="existing" data-index="${idx}">×</button>
+                `;
+                markerFormExistingImages.appendChild(thumb);
+            });
+
+            markerFormPendingPhotos.forEach((pair, idx) => {
+                const thumb = document.createElement('div');
+                thumb.className = 'existing-image-thumb';
+                const objectUrl = URL.createObjectURL(pair.croppedBlob);
+                thumb.innerHTML = `
+                    <img src="${objectUrl}" alt="Новое фото">
+                    <button type="button" class="remove-existing-image" data-kind="pending" data-index="${idx}">×</button>
+                `;
+                markerFormExistingImages.appendChild(thumb);
+            });
+
+            markerFormExistingImages.querySelectorAll('.remove-existing-image').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const idx = parseInt(this.getAttribute('data-index'), 10);
+                    if (this.getAttribute('data-kind') === 'pending') {
+                        markerFormPendingPhotos.splice(idx, 1);
+                    } else {
+                        markerFormKeptImages.splice(idx, 1);
+                        markerFormKeptThumbnails.splice(idx, 1);
+                    }
+                    renderExistingImagesInForm();
+                });
+            });
+        }
+
+        function openMarkerFormModal(options) {
+            if (!markerFormModal) return;
+            markerFormError.style.display = 'none';
+            markerFormError.textContent = '';
+            markerForm.reset();
+            markerFormPhotos.value = '';
+            markerFormPendingPhotos = [];
+
+            if (options.mode === 'edit' && options.data) {
+                markerFormMode = 'edit';
+                markerFormTitle.textContent = 'Редактировать организацию';
+                markerFormId.value = options.data.id;
+                markerFormLat.value = options.data.latitude;
+                markerFormLng.value = options.data.longitude;
+                markerFormName.value = options.data.name || '';
+                markerFormAddress.value = options.data.address || '';
+                markerFormDiagnosis.value = options.data.diagnosis || '';
+                markerFormAge.value = options.data.age || '';
+                markerFormPhone.value = options.data.phone || '';
+                markerFormEmail.value = options.data.email || '';
+                markerFormKeptImages = Array.isArray(options.data.imageUrls) && options.data.imageUrls.length
+                    ? options.data.imageUrls.slice()
+                    : (options.data.imageUrl ? [options.data.imageUrl] : []);
+                markerFormKeptThumbnails = Array.isArray(options.data.thumbnailUrls) && options.data.thumbnailUrls.length
+                    ? options.data.thumbnailUrls.slice()
+                    : markerFormKeptImages.slice();
+            } else {
+                markerFormMode = 'create';
+                markerFormTitle.textContent = 'Новая организация';
+                markerFormId.value = '';
+                markerFormLat.value = options.lat;
+                markerFormLng.value = options.lng;
+                markerFormKeptImages = [];
+                markerFormKeptThumbnails = [];
+            }
+            renderExistingImagesInForm();
+            markerFormModal.style.display = 'block';
+        }
+
+        if (markerFormCloseBtn) markerFormCloseBtn.addEventListener('click', closeMarkerFormModal);
+        if (markerFormCancelBtn) markerFormCancelBtn.addEventListener('click', closeMarkerFormModal);
+
+        // ---- Обрезка фото под размер карточки (Cropper.js) ----
+        const cropPhotoModal = document.getElementById('cropPhotoModal');
+        const cropModalImage = document.getElementById('cropModalImage');
+        const cropModalConfirmBtn = document.getElementById('cropModalConfirmBtn');
+        const cropModalSkipBtn = document.getElementById('cropModalSkipBtn');
+
+        let cropQueue = [];
+        let cropperInstance = null;
+        let cropCurrentObjectUrl = null;
+
+        function getCardAspectRatio() {
+            const el = document.getElementById('info-panel-image-placeholder');
+            if (el && el.clientWidth && el.clientHeight) {
+                return el.clientWidth / el.clientHeight;
+            }
+            return 310 / 200; // запасное значение, если панель ещё ни разу не рендерилась
+        }
+
+        function destroyCropper() {
+            if (cropperInstance) {
+                cropperInstance.destroy();
+                cropperInstance = null;
+            }
+            if (cropCurrentObjectUrl) {
+                URL.revokeObjectURL(cropCurrentObjectUrl);
+                cropCurrentObjectUrl = null;
+            }
+        }
+
+        function processNextInCropQueue() {
+            if (!cropQueue.length) {
+                if (cropPhotoModal) cropPhotoModal.style.display = 'none';
+                destroyCropper();
+                renderExistingImagesInForm();
+                return;
+            }
+            const file = cropQueue.shift();
+            if (cropCurrentObjectUrl) {
+                URL.revokeObjectURL(cropCurrentObjectUrl);
+            }
+            cropCurrentObjectUrl = URL.createObjectURL(file);
+            cropModalImage.src = cropCurrentObjectUrl;
+            if (cropPhotoModal) cropPhotoModal.style.display = 'block';
+
+            destroyCropperKeepModalOpen();
+
+            cropModalImage.onload = function () {
+                cropperInstance = new Cropper(cropModalImage, {
+                    aspectRatio: getCardAspectRatio(),
+                    viewMode: 1,
+                    dragMode: 'move',
+                    autoCropArea: 1,
+                    background: false,
+                    responsive: true,
+                    zoomOnWheel: true
+                });
+            };
+
+            cropModalConfirmBtn.onclick = function () {
+                if (!cropperInstance) return;
+                const ratio = getCardAspectRatio();
+                const outputWidth = 800;
+                const outputHeight = Math.round(outputWidth / ratio);
+                cropperInstance.getCroppedCanvas({ width: outputWidth, height: outputHeight }).toBlob(function (blob) {
+                    if (blob) {
+                        markerFormPendingPhotos.push({ original: file, croppedBlob: blob });
+                    }
+                    processNextInCropQueue();
+                }, 'image/jpeg', 0.9);
+            };
+
+            cropModalSkipBtn.onclick = function () {
+                processNextInCropQueue();
+            };
+        }
+
+        // Уничтожаем предыдущий инстанс cropper, не закрывая модалку (между фото в очереди)
+        function destroyCropperKeepModalOpen() {
+            if (cropperInstance) {
+                cropperInstance.destroy();
+                cropperInstance = null;
+            }
+        }
+
+        if (markerFormPhotos) {
+            markerFormPhotos.addEventListener('change', function () {
+                if (!this.files || !this.files.length) return;
+                cropQueue = Array.from(this.files);
+                markerFormPhotos.value = '';
+                processNextInCropQueue();
+            });
+        }
+
+        if (markerForm) {
+            markerForm.addEventListener('submit', function (e) {
+                e.preventDefault();
+                const name = markerFormName.value.trim();
+                if (!name) {
+                    markerFormError.textContent = 'Название обязательно';
+                    markerFormError.style.display = 'block';
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append('name', name);
+                formData.append('address', markerFormAddress.value.trim());
+                formData.append('latitude', markerFormLat.value);
+                formData.append('longitude', markerFormLng.value);
+                formData.append('diagnosis', markerFormDiagnosis.value);
+                formData.append('age', markerFormAge.value);
+                formData.append('phone', markerFormPhone.value.trim());
+                formData.append('email', markerFormEmail.value.trim());
+
+                if (markerFormMode === 'edit') {
+                    markerFormKeptImages.forEach(url => formData.append('existingImages', url));
+                    markerFormKeptThumbnails.forEach(url => formData.append('existingThumbnails', url));
+                }
+                markerFormPendingPhotos.forEach((pair, i) => {
+                    formData.append('photos', pair.original);
+                    formData.append('thumbnails', pair.croppedBlob, `thumb_${i}.jpg`);
+                });
+
+                const requestUrl = markerFormMode === 'edit'
+                    ? `/api/map-points/${markerFormId.value}`
+                    : '/api/map-points';
+                const method = markerFormMode === 'edit' ? 'PUT' : 'POST';
+
+                fetch(requestUrl, { method: method, body: formData, credentials: 'include' })
+                    .then(response => {
+                        if (!response.ok) {
+                            return response.json()
+                                .catch(() => null)
+                                .then(err => {
+                                    throw new Error((err && err.message) || 'Не удалось сохранить организацию');
+                                });
+                        }
+                        return response.json();
+                    })
+                    .then(savedMarker => {
+                        if (markerFormMode === 'edit') {
+                            const entry = markersById[savedMarker.id];
+                            if (entry) {
+                                entry.data = savedMarker;
+                                entry.placemark.properties.set('markerData', savedMarker);
+                                entry.placemark.properties.set('hintContent', savedMarker.name);
+                            }
+                            if (currentMarkerData.id === savedMarker.id) {
+                                populateInfoPanelContent(savedMarker);
+                            }
+                            showNotification('Организация обновлена', 'success');
+                        } else {
+                            addMarkerToMapWithData([savedMarker.latitude, savedMarker.longitude], savedMarker);
+                            showNotification('Организация добавлена на карту', 'success');
+                        }
+                        markerFormPendingPhotos = [];
+                        closeMarkerFormModal();
+                    })
+                    .catch(error => {
+                        markerFormError.textContent = error.message;
+                        markerFormError.style.display = 'block';
+                    });
+            });
+        }
+
+        // ---- Модальное окно выбора действия над маркером (изменить/удалить) ----
+        const markerActionModal = document.getElementById('markerActionModal');
+        const markerActionTitle = document.getElementById('markerActionTitle');
+        const markerActionEditBtn = document.getElementById('markerActionEditBtn');
+        const markerActionDeleteBtn = document.getElementById('markerActionDeleteBtn');
+        const markerActionCancelBtn = document.getElementById('markerActionCancelBtn');
+        let markerActionCurrentData = null;
+
+
+        function openMarkerActionModal(markerData) {
+            if (!markerActionModal) return;
+            markerActionCurrentData = markerData;
+            markerActionTitle.textContent = markerData.name || 'Организация';
+            markerActionModal.style.display = 'block';
+        }
+
+        function closeMarkerActionModal() {
+            if (markerActionModal) markerActionModal.style.display = 'none';
+        }
+
+        if (markerActionCancelBtn) markerActionCancelBtn.addEventListener('click', closeMarkerActionModal);
+        if (markerActionEditBtn) {
+            markerActionEditBtn.addEventListener('click', function () {
+                closeMarkerActionModal();
+                if (markerActionCurrentData) {
+                    openMarkerFormModal({ mode: 'edit', data: markerActionCurrentData });
+                }
+            });
+        }
+        if (markerActionDeleteBtn) {
+            markerActionDeleteBtn.addEventListener('click', function () {
+                closeMarkerActionModal();
+                if (markerActionCurrentData) {
+                    openConfirmDeleteModal(markerActionCurrentData.id, markerActionCurrentData.name);
+                }
+            });
+        }
+
+        // ---- Модальное окно подтверждения удаления ----
+        const confirmDeleteModal = document.getElementById('confirmDeleteModal');
+        const confirmDeleteText = document.getElementById('confirmDeleteText');
+        const confirmDeleteOkBtn = document.getElementById('confirmDeleteOkBtn');
+        const confirmDeleteCancelBtn = document.getElementById('confirmDeleteCancelBtn');
+
+        function openConfirmDeleteModal(markerId, markerName) {
+            if (!confirmDeleteModal) return;
+            pendingDeleteId = markerId;
+            confirmDeleteText.textContent = `Удалить организацию «${markerName || ''}» с карты? Это действие необратимо.`;
+            confirmDeleteModal.style.display = 'block';
+        }
+
+        function closeConfirmDeleteModal() {
+            if (confirmDeleteModal) confirmDeleteModal.style.display = 'none';
+            pendingDeleteId = null;
+        }
+
+        if (confirmDeleteCancelBtn) confirmDeleteCancelBtn.addEventListener('click', closeConfirmDeleteModal);
+        if (confirmDeleteOkBtn) {
+            confirmDeleteOkBtn.addEventListener('click', function () {
+                if (!pendingDeleteId) return;
+                const idToDelete = pendingDeleteId;
+                fetch(`/api/map-points/${idToDelete}`, { method: 'DELETE', credentials: 'include' })
+                    .then(response => {
+                        if (!response.ok) throw new Error('Не удалось удалить организацию');
+                        return response.json().catch(() => ({}));
+                    })
+                    .then(() => {
+                        const entry = markersById[idToDelete];
+                        if (entry) {
+                            map.geoObjects.remove(entry.placemark);
+                            delete markersById[idToDelete];
+                        }
+                        if (currentMarkerData.id === idToDelete) {
+                            hideInfoPanel();
+                        }
+                        showNotification('Организация удалена', 'success');
+                        closeConfirmDeleteModal();
+                    })
+                    .catch(error => {
+                        showNotification(error.message, 'error');
+                        closeConfirmDeleteModal();
+                    });
+            });
+        }
+
+        // ---- Кнопка редактирования на карточке организации ----
+        const infoPanelEditBtn = document.getElementById('info-panel-edit-btn');
+        if (infoPanelEditBtn) {
+            infoPanelEditBtn.addEventListener('click', function () {
+                if (!isAdmin || !currentMarkerData.id) return;
+                const entry = markersById[currentMarkerData.id];
+                if (entry) {
+                    openMarkerFormModal({ mode: 'edit', data: entry.data });
+                }
+            });
+        }
     });
 
-    // Функция для отображения инфо-панели
-    function showInfoPanel(markerData) {
-        console.log("markerData:", markerData);
-        console.log("typeof imageUrl:", typeof markerData.imageUrl);
+    // Заполняет содержимое карточки организации данными (без увеличения счётчика просмотров)
+    function populateInfoPanelContent(markerData) {
         if (!infoPanel || !markerData) return;
 
         currentMarkerData.id = markerData.id;
@@ -310,11 +752,49 @@ document.addEventListener('DOMContentLoaded', function () {
         infoPanelDiagnosis.textContent = categoryMap[markerData.diagnosis] || '(нет данных)';
         infoPanelAge.textContent = markerData.age || '(нет данных)';
 
-        // Обновляем счётчик просмотров на клиенте
         const viewCount = markerData.views !== undefined ? markerData.views : 0;
         document.getElementById('info-panel-views').textContent = viewCount;
 
-        // Отправляем запрос на сервер для увеличения счётчика
+        // Собираем список фотографий: полные версии (для полноэкранного режима)
+        // и обрезанные версии под размер карточки (для карусели в сайдбаре)
+        let fullImages = [];
+        if (Array.isArray(markerData.imageUrls) && markerData.imageUrls.length) {
+            fullImages = markerData.imageUrls.filter(Boolean);
+        } else if (typeof markerData.imageUrl === 'string' && markerData.imageUrl) {
+            fullImages = [markerData.imageUrl];
+        } else if (markerData.imageUrl && typeof markerData.imageUrl.url === 'string') {
+            fullImages = [markerData.imageUrl.url];
+        }
+
+        let thumbImages = Array.isArray(markerData.thumbnailUrls) && markerData.thumbnailUrls.length
+            ? markerData.thumbnailUrls.filter(Boolean)
+            : fullImages;
+        // На случай рассинхронизации длины — достраиваем недостающие превью полными фото
+        if (thumbImages.length < fullImages.length) {
+            thumbImages = fullImages.map((url, i) => thumbImages[i] || url);
+        }
+
+        renderCardCarousel(thumbImages, fullImages, markerData.name, markerData.address);
+
+        revealAdminUI();
+
+        const sidebar = document.getElementById('sidebar');
+        const mainContentElement = document.getElementById('main-content');
+
+        if (sidebar && sidebar.classList.contains('active')) {
+            sidebar.classList.remove('active');
+            if (mainContentElement) mainContentElement.classList.remove('sidebar-active');
+            if (map && map.container) setTimeout(() => map.container.fitToViewport(), 310);
+        }
+    }
+
+    // Функция для отображения инфо-панели
+    function showInfoPanel(markerData) {
+        if (!infoPanel || !markerData) return;
+
+        populateInfoPanelContent(markerData);
+
+        // Отправляем запрос на сервер для увеличения счётчика просмотров
         if (markerData.id) {
             fetch(`/api/map-points/${markerData.id}/increment-view`, {
                 method: 'POST',
@@ -330,35 +810,175 @@ document.addEventListener('DOMContentLoaded', function () {
             .catch(err => console.error('Ошибка увеличения просмотров:', err));
         }
 
-        const imagePlaceholder = document.getElementById('info-panel-image-placeholder');
-
-        let imageUrl = null;
-        if (typeof markerData.imageUrl === 'string') {
-            imageUrl = markerData.imageUrl;
-        } else if (markerData.imageUrl && typeof markerData.imageUrl.url === 'string') {
-            imageUrl = markerData.imageUrl.url;
-        }
-
-        if (imageUrl) {
-            imagePlaceholder.innerHTML = `
-                <img src="${imageUrl}" alt="Фото ${markerData.name}" class="info-img" onclick="openImageModal('${imageUrl}')">
-            `;
-        } else {
-            imagePlaceholder.innerHTML = '<span>Фото</span>';
-        }
-
-        const sidebar = document.getElementById('sidebar');
-        const mainContentElement = document.getElementById('main-content');
-
-        if (sidebar && sidebar.classList.contains('active')) {
-            sidebar.classList.remove('active');
-            if (mainContentElement) mainContentElement.classList.remove('sidebar-active');
-            if (map && map.container) setTimeout(() => map.container.fitToViewport(), 310);
-        }
-
         infoPanel.classList.add('active');
         loadReviews(markerData.id);
     }
+
+    // --- Карусель фотографий на карточке организации ---
+    // thumbImages — обрезанные версии под размер карточки (показываются в карусели)
+    // fullImages — полные версии (открываются в полноэкранном режиме)
+    function renderCardCarousel(thumbImages, fullImages, name, address) {
+        currentCardImages = thumbImages || [];
+        const fullSizeImages = (fullImages && fullImages.length === currentCardImages.length) ? fullImages : currentCardImages;
+        currentCardImageIndex = 0;
+
+        const emptyPlaceholder = document.querySelector('.info-image-empty');
+        const carouselImg = document.getElementById('info-carousel-img');
+        const prevBtn = document.getElementById('info-carousel-prev');
+        const nextBtn = document.getElementById('info-carousel-next');
+        const dotsContainer = document.getElementById('info-carousel-dots');
+
+        if (!carouselImg) return;
+
+        if (!currentCardImages.length) {
+            carouselImg.style.display = 'none';
+            if (emptyPlaceholder) emptyPlaceholder.style.display = 'flex';
+            if (prevBtn) prevBtn.style.display = 'none';
+            if (nextBtn) nextBtn.style.display = 'none';
+            if (dotsContainer) dotsContainer.innerHTML = '';
+            return;
+        }
+
+        if (emptyPlaceholder) emptyPlaceholder.style.display = 'none';
+        carouselImg.style.display = 'block';
+
+        function showCardImage(index) {
+            currentCardImageIndex = (index + currentCardImages.length) % currentCardImages.length;
+            carouselImg.src = currentCardImages[currentCardImageIndex];
+            carouselImg.alt = 'Фото ' + (name || '');
+            if (dotsContainer) {
+                dotsContainer.querySelectorAll('.carousel-dot').forEach((dot, i) => {
+                    dot.classList.toggle('active', i === currentCardImageIndex);
+                });
+            }
+        }
+
+        showCardImage(0);
+
+        const hasMultiple = currentCardImages.length > 1;
+        if (prevBtn) prevBtn.style.display = hasMultiple ? 'flex' : 'none';
+        if (nextBtn) nextBtn.style.display = hasMultiple ? 'flex' : 'none';
+
+        if (prevBtn) prevBtn.onclick = function (e) { e.stopPropagation(); showCardImage(currentCardImageIndex - 1); };
+        if (nextBtn) nextBtn.onclick = function (e) { e.stopPropagation(); showCardImage(currentCardImageIndex + 1); };
+
+        if (dotsContainer) {
+            dotsContainer.innerHTML = '';
+            if (hasMultiple) {
+                currentCardImages.forEach((_, i) => {
+                    const dot = document.createElement('button');
+                    dot.type = 'button';
+                    dot.className = 'carousel-dot' + (i === 0 ? ' active' : '');
+                    dot.addEventListener('click', function (e) {
+                        e.stopPropagation();
+                        showCardImage(i);
+                    });
+                    dotsContainer.appendChild(dot);
+                });
+            }
+        }
+
+        carouselImg.onclick = function () {
+            openFullscreenViewer(fullSizeImages, currentCardImageIndex, name, address);
+        };
+    }
+
+    // --- Полноэкранный просмотр фотографий с перелистыванием ---
+    let fullscreenImages = [];
+    let fullscreenIndex = 0;
+    let fullscreenName = '';
+    let fullscreenAddress = '';
+
+    function showFullscreenImage(index) {
+        if (!fullscreenImages.length) return;
+        fullscreenIndex = (index + fullscreenImages.length) % fullscreenImages.length;
+        const modalImg = document.getElementById('modalImage');
+        if (modalImg) modalImg.src = fullscreenImages[fullscreenIndex];
+
+        const dotsContainer = document.getElementById('image-modal-dots');
+        if (dotsContainer) {
+            dotsContainer.querySelectorAll('.carousel-dot').forEach((dot, i) => {
+                dot.classList.toggle('active', i === fullscreenIndex);
+            });
+        }
+    }
+
+    function openFullscreenViewer(images, startIndex, name, address) {
+        const modal = document.getElementById('imageModal');
+        if (!modal || !images || !images.length) return;
+
+        fullscreenImages = images;
+        fullscreenName = name || '';
+        fullscreenAddress = address || '';
+
+        const nameEl = document.getElementById('image-modal-name');
+        const addressEl = document.getElementById('image-modal-address');
+        if (nameEl) nameEl.textContent = fullscreenName;
+        if (addressEl) addressEl.textContent = fullscreenAddress;
+
+        const prevBtn = document.getElementById('image-modal-prev');
+        const nextBtn = document.getElementById('image-modal-next');
+        const hasMultiple = fullscreenImages.length > 1;
+        if (prevBtn) prevBtn.style.display = hasMultiple ? 'flex' : 'none';
+        if (nextBtn) nextBtn.style.display = hasMultiple ? 'flex' : 'none';
+
+        const dotsContainer = document.getElementById('image-modal-dots');
+        if (dotsContainer) {
+            dotsContainer.innerHTML = '';
+            if (hasMultiple) {
+                fullscreenImages.forEach((_, i) => {
+                    const dot = document.createElement('button');
+                    dot.type = 'button';
+                    dot.className = 'carousel-dot';
+                    dot.addEventListener('click', () => showFullscreenImage(i));
+                    dotsContainer.appendChild(dot);
+                });
+            }
+        }
+
+        modal.style.display = 'block';
+        showFullscreenImage(startIndex || 0);
+    }
+
+    function closeFullscreenViewer() {
+        const modal = document.getElementById('imageModal');
+        if (modal) modal.style.display = 'none';
+    }
+
+    const imageModalCloseBtn = document.getElementById('image-modal-close-btn');
+    if (imageModalCloseBtn) imageModalCloseBtn.addEventListener('click', closeFullscreenViewer);
+
+    const imageModalPrevBtn = document.getElementById('image-modal-prev');
+    const imageModalNextBtn = document.getElementById('image-modal-next');
+    if (imageModalPrevBtn) imageModalPrevBtn.addEventListener('click', () => showFullscreenImage(fullscreenIndex - 1));
+    if (imageModalNextBtn) imageModalNextBtn.addEventListener('click', () => showFullscreenImage(fullscreenIndex + 1));
+
+    window.addEventListener('click', function (event) {
+        const modal = document.getElementById('imageModal');
+        if (modal && event.target === modal) {
+            modal.style.display = 'none';
+        }
+        const markerFormModalEl = document.getElementById('markerFormModal');
+        if (markerFormModalEl && event.target === markerFormModalEl) {
+            markerFormModalEl.style.display = 'none';
+        }
+        const markerActionModalEl = document.getElementById('markerActionModal');
+        if (markerActionModalEl && event.target === markerActionModalEl) {
+            markerActionModalEl.style.display = 'none';
+        }
+        const confirmDeleteModalEl = document.getElementById('confirmDeleteModal');
+        if (confirmDeleteModalEl && event.target === confirmDeleteModalEl) {
+            confirmDeleteModalEl.style.display = 'none';
+        }
+    });
+
+    document.addEventListener('keydown', function (event) {
+        const modal = document.getElementById('imageModal');
+        if (!modal || modal.style.display !== 'block') return;
+        if (event.key === 'Escape') closeFullscreenViewer();
+        if (event.key === 'ArrowLeft') showFullscreenImage(fullscreenIndex - 1);
+        if (event.key === 'ArrowRight') showFullscreenImage(fullscreenIndex + 1);
+    });
 
     function hideInfoPanel() {
         if (!infoPanel) return;

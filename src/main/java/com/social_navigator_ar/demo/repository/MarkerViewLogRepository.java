@@ -14,4 +14,6 @@ public interface MarkerViewLogRepository extends JpaRepository<MarkerViewLog, Lo
 
     @Query("SELECT FUNCTION('DATE', m.viewedAt), COUNT(m) FROM MarkerViewLog m WHERE m.marker.id = :markerId GROUP BY FUNCTION('DATE', m.viewedAt)")
     List<Object[]> countViewsByDate(@Param("markerId") Long markerId);
+
+    void deleteByMarkerId(Long markerId);
 }

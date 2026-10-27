@@ -7,6 +7,7 @@ import com.social_navigator_ar.demo.model.Review;
 import com.social_navigator_ar.demo.repository.LoginRepository;
 import com.social_navigator_ar.demo.repository.MarkerRepository;
 import com.social_navigator_ar.demo.repository.ReviewRepository;
+import com.social_navigator_ar.demo.service.AdminNotificationService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.validation.BindingResult;
@@ -23,20 +24,20 @@ public class ReviewController {
     private final ReviewRepository reviewRepository;
     private final MarkerRepository markerRepository;
     private final LoginRepository loginRepository;
+    private final AdminNotificationService adminNotificationService;
 
     public ReviewController(
             ReviewRepository reviewRepository,
             MarkerRepository markerRepository,
-            LoginRepository loginRepository
+            LoginRepository loginRepository,
+            AdminNotificationService adminNotificationService
     ) {
         this.reviewRepository = reviewRepository;
         this.markerRepository = markerRepository;
         this.loginRepository = loginRepository;
+        this.adminNotificationService = adminNotificationService;
     }
 
-    /**
-     * Получает список отзывов для маркера в формате DTO
-     */
     @GetMapping("/marker/{markerId}")
     public ResponseEntity<List<ReviewDTO>> getReviewsByMarker(@PathVariable Long markerId) {
         try {
@@ -50,9 +51,6 @@ public class ReviewController {
         }
     }
 
-    /**
-     * Добавляет новый отзыв
-     */
     @PostMapping
     public ResponseEntity<ReviewDTO> addReview(
             @Valid @RequestBody Review review,
@@ -75,14 +73,18 @@ public class ReviewController {
         review.setMarker(marker);
         review.setCreatedAt(LocalDateTime.now());
 
-        // Сохраняем отзыв
         Review savedReview = reviewRepository.save(review);
 
-        // Явно получаем данные, избегая ленивой загрузки
-        Long markerId = marker.getId();  // Уже загружен
-        String userName = user.getName(); // Уже загружен
+        String preview = AdminNotificationService.truncate(savedReview.getText(), 120);
+        adminNotificationService.record(
+                "REVIEW_ADDED",
+                "Пользователь " + user.getName() + " добавил отзыв на организацию «" + marker.getName() + "»"
+                        + (preview.isEmpty() ? "" : ": " + preview)
+        );
 
-        // Создаём DTO без вызова getMarker() / getUser()
+        Long markerId = marker.getId();
+        String userName = user.getName();
+
         ReviewDTO dto = new ReviewDTO(
                 savedReview.getId(),
                 savedReview.getText(),

@@ -51,14 +51,18 @@ public class SecurityConfig {
                                 "/js/**",
                                 "/images/**",
                                 "/uploads/**",
-                                "/api/map-points",
                                 "/check-auth",
                                 "/check-admin",
                                 "/api/reviews/marker/**"
                         ).permitAll()
-                        .requestMatchers("/api/map-points/{id}/increment-view").permitAll()
+                        .requestMatchers("/api/map-points/*/increment-view").permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/map-points", "/api/map-points/*").permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/map-points").hasRole("ADMIN")
+                        .requestMatchers(org.springframework.http.HttpMethod.PUT, "/api/map-points/*").hasRole("ADMIN")
+                        .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/api/map-points/*").hasRole("ADMIN")
                         .requestMatchers("/api/upload/photo").authenticated()
                         .requestMatchers("/cabinet").authenticated()
+                        .requestMatchers("/admin/admins/**").hasRole("SUPER_ADMIN")
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/chat/**").authenticated()
                         .anyRequest().authenticated()
@@ -95,7 +99,13 @@ public class SecurityConfig {
                                 new AntPathRequestMatcher("/api/reviews/**"),
                                 new AntPathRequestMatcher("/api/chat/**"),
                                 new AntPathRequestMatcher("/api/map-points/**/increment-view", "POST"),
-                                new AntPathRequestMatcher("/api/upload/photo", "POST")
+                                new AntPathRequestMatcher("/api/upload/photo", "POST"),
+                                new AntPathRequestMatcher("/api/map-points", "POST"),
+                                new AntPathRequestMatcher("/api/map-points/*", "PUT"),
+                                new AntPathRequestMatcher("/api/map-points/*", "DELETE"),
+                                new AntPathRequestMatcher("/admin/profile/update-field", "POST"),
+                                new AntPathRequestMatcher("/admin/profile/change-password", "POST"),
+                                new AntPathRequestMatcher("/admin/import/**", "POST")
                         )
                 );
 

@@ -1,26 +1,26 @@
-package com.social_navigator_ar.demo.model; // Или ваш выбранный пакет для сущностей
+package com.social_navigator_ar.demo.model;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "user_profiles") // Это будет новая таблица
+@Table(name = "user_profiles")
 public class UserProfiles {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @OneToOne
-    @JoinColumn(name = "user_id", nullable = false, unique = true) // добавлено unique
+    @JoinColumn(name = "user_id", nullable = false, unique = true)
     private Login user;
 
     @Column(length = 20)
     private String phone;
 
     @Column(length = 255)
-    private String diagnosis; // Основной диагноз/потребность пользователя для фильтрации рекомендаций
+    private String diagnosis;
 
-    private Integer childAge; // Возраст ребенка, если применимо
+    private Integer childAge;
 
     @Column(updatable = false)
     private LocalDateTime createdAt;
@@ -30,7 +30,6 @@ public class UserProfiles {
         createdAt = LocalDateTime.now();
     }
 
-    // Геттеры и сеттеры
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public Login getUser() { return user; }

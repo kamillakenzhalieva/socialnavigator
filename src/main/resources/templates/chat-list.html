@@ -221,7 +221,10 @@
 <div class="chat-container">
     <h1>Входящие сообщения</h1>
     <div class="nav-links">
-        <a th:href="@{/admin}">Вернуться в админ-панель</a>
+        <a th:href="@{/admin/panel}">В админ-панель</a>
+        <a th:href="@{/}">Перейти на карту</a>
+        <a th:href="@{/admin/organizations}">База организаций</a>
+        <a th:if="${isSuperAdmin}" th:href="@{/admin/admins}">Управление администраторами</a>
         <form th:action="@{/logout}" method="post" style="display: inline;">
             <button type="submit">Выйти из системы</button>
         </form>

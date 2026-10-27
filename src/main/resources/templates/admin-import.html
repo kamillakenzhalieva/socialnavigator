@@ -1,0 +1,1357 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security6">
+<head>
+    <meta charset="UTF-8">
+    <title>Админ-панель — Социальный навигатор</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <style>
+        :root {
+            --sidebar-width: 264px;
+            --topbar-height: 70px;
+            --bg-app: #f4f7f6;
+            --bg-card: #ffffff;
+            --border-soft: #ecf0f1;
+            --border-mid: #e0e6e5;
+            --text-main: #2c3e50;
+            --text-body: #333333;
+            --text-muted: #7f8c8d;
+            --accent: #3498db;
+            --accent-soft: #eaf4fc;
+            --success: #28a745;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+        }
+
+        * { box-sizing: border-box; }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-app);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            color: var(--text-body);
+            min-height: 100vh;
+        }
+
+        .admin-layout {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .admin-sidebar {
+            width: var(--sidebar-width);
+            background-color: #ffffff;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            display: flex;
+            flex-direction: column;
+            z-index: 100;
+        }
+
+        .sidebar-brand {
+            height: var(--topbar-height);
+            display: flex;
+            align-items: center;
+            padding: 0 22px;
+            font-weight: 900;
+            font-size: 15px;
+            letter-spacing: 0.5px;
+            color: #4C3C34;
+            text-transform: uppercase;
+            border-bottom: 1px solid var(--border-soft);
+            flex-shrink: 0;
+        }
+
+        .sidebar-brand .brand-mark {
+            margin-right: 10px;
+            font-size: 18px;
+            color: #E91E63;
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            overflow-y: auto;
+            padding: 14px 10px 20px;
+            scrollbar-width: thin;
+            scrollbar-color: #ced4da #f8f9fa;
+        }
+
+        .sidebar-nav::-webkit-scrollbar { width: 6px; }
+        .sidebar-nav::-webkit-scrollbar-track { background: #f8f9fa; }
+        .sidebar-nav::-webkit-scrollbar-thumb {
+            background: #ced4da; border-radius: 3px;
+        }
+        .sidebar-nav::-webkit-scrollbar-thumb:hover { background: #adb5bd; }
+
+        .nav-group {
+            margin-bottom: 6px;
+        }
+
+        .nav-group-title {
+            padding: 14px 14px 6px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            color: #95a5a6;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            margin: 2px 0;
+            border-radius: 6px;
+            color: #4a5568;
+            font-size: 14px;
+            font-weight: 500;
+            text-decoration: none;
+            cursor: pointer;
+            transition: background-color 0.2s, color 0.2s;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            font-family: inherit;
+        }
+
+        .nav-icon {
+            width: 22px;
+            text-align: center;
+            font-size: 15px;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+
+        .nav-item:hover {
+            background-color: var(--accent-soft);
+            color: var(--accent);
+        }
+
+        .nav-item.active {
+            background-color: var(--accent);
+            color: #ffffff;
+            font-weight: 600;
+        }
+
+        .nav-badge {
+            margin-left: auto;
+            background-color: #fdecea;
+            color: #c0392b;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 10px;
+            min-width: 22px;
+            text-align: center;
+        }
+
+        .nav-item.active .nav-badge {
+            background-color: rgba(255, 255, 255, 0.25);
+            color: #ffffff;
+        }
+
+        .sidebar-footer {
+            padding: 14px 16px;
+            border-top: 1px solid var(--border-soft);
+            flex-shrink: 0;
+        }
+
+        .logout-btn {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            border-radius: 6px;
+            background-color: transparent;
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s, color 0.2s;
+        }
+
+        .logout-btn:hover {
+            background-color: var(--accent);
+            color: #ffffff;
+        }
+
+        .main-area {
+            flex: 1;
+            margin-left: var(--sidebar-width);
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .topbar {
+            height: var(--topbar-height);
+            background-color: #ffffff;
+            border-bottom: 1px solid var(--border-soft);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 32px;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .topbar-titles {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .topbar-service {
+            font-size: 12px;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            color: #95a5a6;
+        }
+
+        .topbar-section {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .topbar-profile {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .profile-avatar {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background-color: var(--accent);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 16px;
+            letter-spacing: 0.5px;
+            flex-shrink: 0;
+        }
+
+        .profile-meta {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.25;
+        }
+
+        .profile-meta-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .profile-meta-role {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .content {
+            padding: 32px 40px 60px;
+            max-width: 1400px;
+            width: 100%;
+        }
+
+        .page-section { display: none; }
+        .page-section.active { display: block; }
+
+        .page-header h2 {
+            margin: 0 0 6px;
+            font-size: 26px;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .page-header .greeting {
+            margin: 0;
+            font-size: 15px;
+            color: var(--text-muted);
+        }
+
+        .section-title-block {
+            margin: 36px 0 18px;
+        }
+
+        .section-title-block h3 {
+            margin: 0 0 4px;
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-main);
+            border-bottom: 2px solid var(--border-soft);
+            padding-bottom: 10px;
+        }
+
+        .section-title-block p {
+            margin: 8px 0 0;
+            font-size: 14px;
+            color: var(--text-muted);
+            max-width: 720px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+        }
+
+        @media (max-width: 1200px) {
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 640px) {
+            .stats-grid { grid-template-columns: 1fr; }
+        }
+
+        .stat-card {
+            background-color: var(--bg-card);
+            border-radius: 8px;
+            padding: 22px 22px 18px;
+            border: 1px solid var(--border-soft);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            display: flex;
+            flex-direction: column;
+            transition: box-shadow 0.2s, transform 0.2s;
+        }
+
+        .stat-card:hover {
+            box-shadow: 0 4px 16px rgba(52, 152, 219, 0.12);
+            transform: translateY(-2px);
+        }
+
+        .stat-card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+
+        .stat-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+        .stat-icon.blue   { background-color: #eaf4fc; }
+        .stat-icon.violet { background-color: #f0ecfa; }
+        .stat-icon.teal   { background-color: #e3f4f1; }
+        .stat-icon.amber  { background-color: #fdf3e0; }
+
+        .stat-label {
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        .stat-main-value {
+            font-size: 34px;
+            font-weight: 700;
+            color: var(--text-main);
+            line-height: 1;
+            letter-spacing: -0.5px;
+        }
+
+        .stat-main-label {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-top: 4px;
+            margin-bottom: 18px;
+        }
+
+        .stat-link {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            border-radius: 6px;
+            background-color: #f8fafc;
+            border: 1px solid var(--border-soft);
+            text-decoration: none;
+            color: var(--text-body);
+            transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+            margin-top: auto;
+        }
+
+        .stat-link:hover {
+            background-color: var(--accent-soft);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .stat-link-info {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.25;
+        }
+
+        .stat-link-value {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .stat-link-text {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .stat-link-arrow {
+            color: #bdc3c7;
+            font-size: 15px;
+            transition: transform 0.2s, color 0.2s;
+        }
+
+        .stat-link:hover .stat-link-arrow {
+            transform: translateX(2px);
+            color: var(--accent);
+        }
+
+        .attention-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .attention-item {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-soft);
+            border-left: 4px solid var(--accent);
+            border-radius: 8px;
+            padding: 18px 22px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            transition: box-shadow 0.2s;
+        }
+
+        .attention-item:hover {
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+        }
+
+        .attention-item.priority-high   { border-left-color: var(--danger); }
+        .attention-item.priority-medium { border-left-color: var(--warning); }
+        .attention-item.priority-low    { border-left-color: #d4ac0d; }
+
+        .attention-content {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            min-width: 0;
+        }
+
+        .attention-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .attention-item.priority-high .attention-dot   { background-color: var(--danger); }
+        .attention-item.priority-medium .attention-dot { background-color: var(--warning); }
+        .attention-item.priority-low .attention-dot    { background-color: #d4ac0d; }
+
+        .attention-text {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            min-width: 0;
+        }
+
+        .attention-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .attention-title .count {
+            color: var(--accent);
+            font-weight: 700;
+        }
+
+        .attention-desc {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .attention-action {
+            flex-shrink: 0;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 16px;
+            border-radius: 6px;
+            background-color: transparent;
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            font-size: 13px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: background-color 0.2s, color 0.2s;
+            white-space: nowrap;
+        }
+
+        .attention-action:hover {
+            background-color: var(--accent);
+            color: #fff;
+        }
+
+        @media (max-width: 720px) {
+            .attention-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+
+        .import-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-soft);
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            padding: 22px 26px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 24px;
+            flex-wrap: wrap;
+        }
+
+        .import-info {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-width: 0;
+        }
+
+        .import-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            color: var(--text-body);
+        }
+
+        .import-row .row-icon {
+            width: 18px;
+            text-align: center;
+            font-size: 14px;
+            line-height: 1;
+        }
+
+        .import-row .label {
+            color: var(--text-muted);
+            margin-right: 4px;
+        }
+
+        .import-row .value {
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .import-row .value.pending {
+            color: var(--warning);
+        }
+
+        .import-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 11px 20px;
+            border-radius: 6px;
+            background-color: var(--accent);
+            color: #fff;
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: background-color 0.2s;
+            white-space: nowrap;
+        }
+
+        .import-btn:hover { background-color: #2980b9; }
+
+        .notifications-feed {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            max-height: 480px;
+            overflow-y: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        .notifications-feed::-webkit-scrollbar { display: none; }
+
+        .notification-item {
+            padding: 14px 18px;
+            border-radius: 6px;
+            background-color: #fff;
+            border: 1px solid var(--border-soft);
+            border-left: 4px solid #bdc3c7;
+            margin-bottom: 10px;
+        }
+        .notification-item.type-MESSAGE         { border-left-color: #3498db; }
+        .notification-item.type-REVIEW_ADDED    { border-left-color: #9b59b6; }
+        .notification-item.type-MARKER_ADDED    { border-left-color: #27ae60; }
+        .notification-item.type-MARKER_UPDATED  { border-left-color: #f39c12; }
+        .notification-item.type-MARKER_DELETED  { border-left-color: #e74c3c; }
+
+        .notification-item .notification-text {
+            color: var(--text-body);
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        .notification-item .notification-time {
+            color: #95a5a6;
+            font-size: 12px;
+            margin-top: 6px;
+        }
+        .notifications-empty {
+            text-align: center;
+            color: #95a5a6;
+            padding: 32px 0;
+            font-size: 14px;
+        }
+
+        .profile-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-soft);
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            padding: 6px 26px;
+            max-width: 640px;
+        }
+
+        .profile-row {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 18px 0;
+            border-bottom: 1px solid #f0f2f5;
+        }
+        .profile-row:last-child { border-bottom: none; }
+
+        .profile-row-label {
+            width: 110px;
+            font-weight: 500;
+            color: var(--text-muted);
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+        .profile-row-value {
+            flex: 1;
+            color: var(--text-main);
+            font-size: 15px;
+        }
+        .profile-row-input {
+            flex: 1;
+            padding: 9px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            background-color: #eceff1;
+            font-size: 15px;
+            font-family: inherit;
+            color: var(--text-main);
+            outline: none;
+            transition: border-color 0.2s, background-color 0.2s;
+        }
+        .profile-row-input:focus {
+            border-color: var(--accent);
+            background-color: #fff;
+        }
+
+        .profile-edit-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: 1px solid var(--accent);
+            background-color: #fff;
+            color: var(--accent);
+            cursor: pointer;
+            font-size: 15px;
+            line-height: 1;
+            transition: background-color 0.2s, color 0.2s;
+            flex-shrink: 0;
+        }
+        .profile-edit-btn:hover {
+            background-color: var(--accent);
+            color: #fff;
+        }
+        .profile-edit-btn.confirm-mode {
+            border-color: var(--success);
+            color: var(--success);
+        }
+        .profile-edit-btn.confirm-mode:hover {
+            background-color: var(--success);
+            color: #fff;
+            border-color: var(--success);
+        }
+
+        .role-badge {
+            display: inline-block;
+            padding: 3px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .role-badge.super   { background-color: #fff3cd; color: #856404; }
+        .role-badge.regular { background-color: #e2e3e5; color: #383d41; }
+
+        .change-password-btn {
+            background-color: #6c757d;
+            color: #fff;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            font-family: inherit;
+            transition: background-color 0.2s;
+        }
+        .change-password-btn:hover {
+            background-color: #565e64;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1050;
+            left: 0; top: 0;
+            width: 100%; height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        .modal-content {
+            background-color: #fff;
+            margin: 10% auto;
+            padding: 25px;
+            width: 90%;
+            max-width: 420px;
+            border-radius: 6px;
+            border: 1px solid #bbb;
+            position: relative;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        .close-btn {
+            position: absolute;
+            top: 10px; right: 20px;
+            font-size: 28px;
+            font-weight: bold;
+            color: #888;
+            cursor: pointer;
+            background: none;
+            border: none;
+            padding: 0;
+            line-height: 1;
+        }
+        .close-btn:hover { color: #333; }
+
+        .modal-content h3 {
+            margin: 0 0 22px;
+            font-size: 19px;
+            font-weight: 700;
+            color: var(--text-main);
+            text-align: center;
+        }
+
+        .form-group { margin-bottom: 18px; }
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #555;
+        }
+        .form-group input[type="password"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 15px;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .form-group input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 0.1rem rgba(52, 152, 219, 0.25);
+        }
+
+        .btn { padding: 10px 18px; border-radius: 4px; border: none; cursor: pointer; font-size: 1em; font-weight: 500; font-family: inherit; transition: background-color 0.2s; }
+        .btn-primary { background-color: var(--success); color: #fff; width: 100%; }
+        .btn-primary:hover { background-color: #218838; }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 15px 20px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 2000;
+            max-width: 80%;
+            font-size: 14px;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        .success-notification { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error-notification   { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .notification-close {
+            cursor: pointer;
+            font-weight: bold;
+            background: none;
+            border: none;
+            color: inherit;
+            font-size: 18px;
+            padding: 0 4px;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+            to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="admin-layout">
+
+    <aside class="admin-sidebar">
+        <div class="sidebar-brand">
+            <span class="brand-mark"></span>
+            Социальный<br>навигатор
+        </div>
+
+        <nav class="sidebar-nav">
+
+            <a href="#" class="nav-item active" data-section="home" data-title="Главная">
+                <span class="nav-icon">◉</span>
+                <span>Главная</span>
+            </a>
+
+            <div class="nav-group">
+                <div class="nav-group-title">Пользователи</div>
+                <a href="/admin/users" class="nav-item">
+                    <span class="nav-icon">◉</span>
+                    <span>Все пользователи</span>
+                </a>
+                <a href="/admin/users/verification" class="nav-item">
+                    <span class="nav-icon">◉</span>
+                    <span>Верификация</span>
+                    <span class="nav-badge">17</span>
+                </a>
+            </div>
+
+            <div class="nav-group">
+                <div class="nav-group-title">Организации</div>
+                <a href="/admin/organizations" class="nav-item">
+                    <span class="nav-icon">◉</span>
+                    <span>Реестр организаций</span>
+                </a>
+                <a href="/admin/organizations/moderation" class="nav-item">
+                    <span class="nav-icon">◉</span>
+                    <span>Модерация</span>
+                    <span class="nav-badge">5</span>
+                </a>
+                <a href="/admin/import" class="nav-item">
+                    <span class="nav-icon">◉</span>
+                    <span>Импорт данных</span>
+                </a>
+            </div>
+
+            <div class="nav-group">
+                <div class="nav-group-title">Специалисты</div>
+                <a href="/admin/specialists" class="nav-item">
+                    <span class="nav-icon">◉</span>
+                    <span>Реестр специалистов</span>
+                </a>
+                <a href="/admin/specialists/requests" class="nav-item">
+                    <span class="nav-icon">◉</span>
+                    <span>Заявки</span>
+                    <span class="nav-badge">8</span>
+                </a>
+            </div>
+
+            <div class="nav-group">
+                <div class="nav-group-title">Отзывы</div>
+                <a href="/admin/reviews/moderation" class="nav-item">
+                    <span class="nav-icon">◉</span>
+                    <span>Модерация отзывов</span>
+                    <span class="nav-badge">6</span>
+                </a>
+            </div>
+
+            <div class="nav-group">
+                <div class="nav-group-title">Аккаунт</div>
+                <a href="#" class="nav-item" data-section="profile" data-title="Профиль">
+                    <span class="nav-icon">◉</span>
+                    <span>Профиль</span>
+                </a>
+            </div>
+
+        </nav>
+
+        <div class="sidebar-footer">
+            <form th:action="@{/logout}" method="post">
+                <button type="submit" class="logout-btn">
+                    <span class="nav-icon"></span>
+                    <span>Выйти из аккаунта</span>
+                </button>
+            </form>
+        </div>
+    </aside>
+
+    <div class="main-area">
+
+        <header class="topbar">
+            <div class="topbar-titles">
+            </div>
+            <div class="topbar-profile">
+                <div class="profile-avatar">
+                    А
+                </div>
+                <div class="profile-meta">
+                    <span class="profile-meta-name"
+                          th:text="${adminUser != null ? adminUser.name : 'Администратор'}">Администратор</span>
+                    <span class="profile-meta-role"
+                          th:text="${isSuperAdmin != null and isSuperAdmin ? 'Супер-администратор' : 'Администратор'}">Администратор</span>
+                </div>
+            </div>
+        </header>
+
+        <main class="content">
+
+            <section id="section-home" class="page-section active">
+
+                <div class="page-header">
+                    <p class="greeting">
+                        Добро пожаловать,
+                        <span th:text="${adminUser != null ? adminUser.name : 'Администратор'}">Администратор</span>
+                    </p>
+                </div>
+
+                <div class="section-title-block">
+                    <p>Актуальная информация о пользователях, организациях, специалистах и данных, требующих проверки</p>
+                </div>
+
+                <div class="stats-grid">
+
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <div class="stat-icon blue">п</div>
+                            <span class="stat-label">Пользователи</span>
+                        </div>
+                        <div class="stat-main-value">1 284</div>
+                        <div class="stat-main-label">Пользователей</div>
+
+                        <a href="/admin/users/verification?filter=pending" class="stat-link">
+                            <div class="stat-link-info">
+                                <span class="stat-link-value">17</span>
+                                <span class="stat-link-text">Ожидают верификации</span>
+                            </div>
+                            <span class="stat-link-arrow"></span>
+                        </a>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <div class="stat-icon violet">о</div>
+                            <span class="stat-label">Организации</span>
+                        </div>
+                        <div class="stat-main-value">86</div>
+                        <div class="stat-main-label">Организаций</div>
+
+                        <a href="/admin/organizations/moderation?filter=pending" class="stat-link">
+                            <div class="stat-link-info">
+                                <span class="stat-link-value">5</span>
+                                <span class="stat-link-text">На модерации</span>
+                            </div>
+                            <span class="stat-link-arrow"></span>
+                        </a>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <div class="stat-icon teal">с</div>
+                            <span class="stat-label">Специалисты</span>
+                        </div>
+                        <div class="stat-main-value">34</div>
+                        <div class="stat-main-label">Специалиста</div>
+
+                        <a href="/admin/specialists/requests?filter=new" class="stat-link">
+                            <div class="stat-link-info">
+                                <span class="stat-link-value">8</span>
+                                <span class="stat-link-text">Новых заявок</span>
+                            </div>
+                            <span class="stat-link-arrow"></span>
+                        </a>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <div class="stat-icon amber">о</div>
+                            <span class="stat-label">Отзывы</span>
+                        </div>
+                        <div class="stat-main-value">642</div>
+                        <div class="stat-main-label">Отзыва</div>
+
+                        <a href="/admin/reviews/moderation?filter=pending" class="stat-link">
+                            <div class="stat-link-info">
+                                <span class="stat-link-value">6</span>
+                                <span class="stat-link-text">На проверке</span>
+                            </div>
+                            <span class="stat-link-arrow"></span>
+                        </a>
+                    </div>
+
+                </div>
+                <div class="section-title-block">
+                    <h3>Требуют внимания</h3>
+                </div>
+
+                <div class="attention-list">
+                    <div class="attention-item priority-high">
+                        <div class="attention-content">
+                            <span class="attention-dot"></span>
+                            <div class="attention-text">
+                                <span class="attention-title">
+                                    <span class="count">17</span> пользователей ожидают верификации
+                                </span>
+                                <span class="attention-desc">Проверьте данные зарегистрированных пользователей и подтвердите их аккаунты.</span>
+                            </div>
+                        </div>
+                        <a href="/admin/users/verification?filter=pending" class="attention-action">
+                            Перейти к верификации
+                        </a>
+                    </div>
+                    <div class="attention-item priority-medium">
+                        <div class="attention-content">
+                            <span class="attention-dot"></span>
+                            <div class="attention-text">
+                                <span class="attention-title">
+                                    <span class="count">5</span> организаций ожидают модерации
+                                </span>
+                                <span class="attention-desc">Необходимо проверить предоставленную информацию перед публикацией.</span>
+                            </div>
+                        </div>
+                        <a href="/admin/organizations/moderation?filter=pending" class="attention-action">
+                            Перейти к модерации
+                        </a>
+                    </div>
+                    <div class="attention-item priority-medium">
+                        <div class="attention-content">
+                            <span class="attention-dot"></span>
+                            <div class="attention-text">
+                                <span class="attention-title">
+                                    <span class="count">8</span> заявок специалистов ожидают проверки
+                                </span>
+                                <span class="attention-desc">Проверьте анкеты и подтверждающие документы специалистов.</span>
+                            </div>
+                        </div>
+                        <a href="/admin/specialists/requests?filter=new" class="attention-action">
+                            Перейти к заявкам
+                        </a>
+                    </div>
+                    <div class="attention-item priority-low">
+                        <div class="attention-content">
+                            <span class="attention-dot"></span>
+                            <div class="attention-text">
+                                <span class="attention-title">
+                                    <span class="count">6</span> отзывов ожидают проверки
+                                </span>
+                                <span class="attention-desc">Проверьте новые отзывы перед публикацией.</span>
+                            </div>
+                        </div>
+                        <a href="/admin/reviews/moderation?filter=pending" class="attention-action">
+                            Перейти к отзывам
+                        </a>
+                    </div>
+
+                </div>
+
+                <div th:if="${isSuperAdmin}">
+                    <div class="section-title-block">
+                        <h3>Лента событий</h3>
+                        <p>Последние действия администраторов в системе.</p>
+                    </div>
+
+                    <ul class="notifications-feed"
+                        th:if="${notifications != null and not #lists.isEmpty(notifications)}">
+                        <li class="notification-item"
+                            th:each="n : ${notifications}"
+                            th:classappend="'type-' + ${n.type}">
+                            <div class="notification-text" th:text="${n.text}"></div>
+                            <div class="notification-time"
+                                 th:text="${#temporals.format(n.createdAt, 'dd.MM.yyyy HH:mm')}"></div>
+                        </li>
+                    </ul>
+                    <div class="notifications-empty"
+                         th:if="${notifications == null or #lists.isEmpty(notifications)}">
+                        Пока нет новых событий
+                    </div>
+                </div>
+
+            </section>
+
+            <section id="section-profile" class="page-section">
+
+                <div class="page-header">
+                    <h2>Профиль</h2>
+                    <p class="greeting">Личные данные вашего аккаунта администратора.</p>
+                </div>
+
+                <div class="section-title-block">
+                    <h3>Личные данные</h3>
+                </div>
+
+                <div class="profile-card">
+                    <div class="profile-row">
+                        <span class="profile-row-label">ФИО:</span>
+                        <span class="profile-row-value"
+                              id="profile-name-value"
+                              th:text="${adminUser != null ? adminUser.name : 'Администратор'}">Администратор</span>
+                        <input type="text" class="profile-row-input"
+                               id="profile-name-input"
+                               style="display:none;"
+                               th:value="${adminUser != null ? adminUser.name : ''}">
+                        <button type="button" class="profile-edit-btn"
+                                id="profile-name-edit-btn"
+                                onclick="toggleProfileEdit('name')"
+                                title="Редактировать">✎</button>
+                    </div>
+
+                    <div class="profile-row">
+                        <span class="profile-row-label">Email:</span>
+                        <span class="profile-row-value"
+                              id="profile-email-value"
+                              th:text="${adminUser != null ? adminUser.email : 'admin@example.com'}">admin@example.com</span>
+                        <input type="email" class="profile-row-input"
+                               id="profile-email-input"
+                               style="display:none;"
+                               th:value="${adminUser != null ? adminUser.email : ''}">
+                        <button type="button" class="profile-edit-btn"
+                                id="profile-email-edit-btn"
+                                onclick="toggleProfileEdit('email')"
+                                title="Редактировать">✎</button>
+                    </div>
+
+                    <div class="profile-row">
+                        <span class="profile-row-label">Телефон:</span>
+                        <span class="profile-row-value">—</span>
+                    </div>
+
+                    <div class="profile-row">
+                        <span class="profile-row-label">Роль:</span>
+                        <span>
+                            <span class="role-badge super" th:if="${isSuperAdmin}">Супер-администратор</span>
+                            <span class="role-badge regular" th:unless="${isSuperAdmin}">Администратор</span>
+                        </span>
+                    </div>
+
+                    <div class="profile-row">
+                        <button type="button" class="change-password-btn" onclick="openChangePasswordModal()">
+                            Сменить пароль
+                        </button>
+                    </div>
+                </div>
+
+            </section>
+
+        </main>
+    </div>
+</div>
+
+<div id="changePasswordModal" class="modal">
+    <div class="modal-content">
+        <button class="close-btn" onclick="closeChangePasswordModal()">×</button>
+        <h3>Смена пароля</h3>
+        <form id="changePasswordForm">
+            <div class="form-group">
+                <label for="new-password-input">Новый пароль (минимум 8 символов):</label>
+                <input type="password" id="new-password-input" required minlength="8">
+            </div>
+            <div class="form-group">
+                <label for="confirm-password-input">Подтвердите пароль:</label>
+                <input type="password" id="confirm-password-input" required minlength="8">
+            </div>
+            <button type="submit" class="btn btn-primary">Сохранить новый пароль</button>
+        </form>
+    </div>
+</div>
+
+<script th:inline="javascript">
+    /*<![CDATA[*/
+
+    function showNotification(message, type = 'info') {
+        let notification = document.getElementById('notification');
+        if (!notification) {
+            notification = document.createElement('div');
+            notification.id = 'notification';
+            document.body.appendChild(notification);
+        }
+        notification.textContent = message;
+        notification.className = `notification ${type}-notification`;
+        notification.style.display = 'flex';
+
+        setTimeout(() => { notification.style.display = 'none'; }, 5000);
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const adminFormSuccess = /*[[${adminFormSuccess}]]*/ null;
+        const adminFormError   = /*[[${adminFormError}]]*/ null;
+        const successMessage   = /*[[${successMessage}]]*/ null;
+        const errorMessage     = /*[[${errorMessage}]]*/ null;
+
+        if (adminFormSuccess) showNotification(adminFormSuccess, 'success');
+        if (adminFormError)   showNotification(adminFormError, 'error');
+        if (successMessage)   showNotification(successMessage, 'success');
+        if (errorMessage)     showNotification(errorMessage, 'error');
+
+        const navItems = document.querySelectorAll('.nav-item[data-section]');
+        const sections = document.querySelectorAll('.page-section');
+        const topbarSectionTitle = document.getElementById('topbar-section-title');
+
+        navItems.forEach(item => {
+            item.addEventListener('click', function (e) {
+                e.preventDefault();
+                const sectionId = this.dataset.section;
+                const title = this.dataset.title || this.textContent.trim();
+
+                document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+                this.classList.add('active');
+
+                sections.forEach(s => s.classList.remove('active'));
+                const target = document.getElementById('section-' + sectionId);
+                if (target) target.classList.add('active');
+
+                if (topbarSectionTitle) topbarSectionTitle.textContent = title;
+
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+        });
+
+        if (location.hash === '#profile') {
+            const profileNav = document.querySelector('.nav-item[data-section="profile"]');
+            if (profileNav) profileNav.click();
+        }
+    });
+
+    function getCsrfToken() {
+        const cookieValue = document.cookie
+            .split('; ')
+            .find(row => row.startsWith('XSRF-TOKEN='))
+            ?.split('=')[1];
+        return cookieValue ? decodeURIComponent(cookieValue) : null;
+    }
+
+    function toggleProfileEdit(field) {
+        const valueEl = document.getElementById(`profile-${field}-value`);
+        const inputEl = document.getElementById(`profile-${field}-input`);
+        const btnEl   = document.getElementById(`profile-${field}-edit-btn`);
+        const isEditing = inputEl.style.display !== 'none';
+
+        if (!isEditing) {
+            inputEl.value = valueEl.textContent.trim();
+            valueEl.style.display = 'none';
+            inputEl.style.display = 'inline-block';
+            inputEl.focus();
+            btnEl.textContent = '✓';
+            btnEl.classList.add('confirm-mode');
+            return;
+        }
+
+        const newValue = inputEl.value.trim();
+        if (!newValue) {
+            showNotification('Поле не может быть пустым', 'error');
+            return;
+        }
+
+        fetch('/admin/profile/update-field', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-XSRF-TOKEN': getCsrfToken()
+            },
+            body: JSON.stringify({ field: field, value: newValue })
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(err => { throw new Error(err.message || 'Ошибка при сохранении'); });
+            }
+            return response.json();
+        })
+        .then(data => {
+            valueEl.textContent = data.value;
+            valueEl.style.display = 'inline';
+            inputEl.style.display = 'none';
+            btnEl.textContent = '✎';
+            btnEl.classList.remove('confirm-mode');
+            showNotification('Данные успешно изменены', 'success');
+        })
+        .catch(error => showNotification(error.message, 'error'));
+    }
+
+    function openChangePasswordModal() {
+        document.getElementById('changePasswordModal').style.display = 'block';
+    }
+    function closeChangePasswordModal() {
+        document.getElementById('changePasswordModal').style.display = 'none';
+        document.getElementById('changePasswordForm').reset();
+    }
+    window.addEventListener('click', function (event) {
+        const modal = document.getElementById('changePasswordModal');
+        if (event.target === modal) closeChangePasswordModal();
+    });
+
+    document.getElementById('changePasswordForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        const newPassword = document.getElementById('new-password-input').value;
+        const confirmPassword = document.getElementById('confirm-password-input').value;
+
+        fetch('/admin/profile/change-password', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-XSRF-TOKEN': getCsrfToken()
+            },
+            body: JSON.stringify({ newPassword, confirmPassword })
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(err => { throw new Error(err.message || 'Ошибка при смене пароля'); });
+            }
+            return response.json();
+        })
+        .then(() => {
+            closeChangePasswordModal();
+            showNotification('Пароль успешно изменён', 'success');
+        })
+        .catch(error => showNotification(error.message, 'error'));
+    });
+
+    /*]]>*/
+</script>
+</body>
+</html>

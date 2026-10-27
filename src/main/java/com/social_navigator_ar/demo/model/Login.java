@@ -1,9 +1,9 @@
-package com.social_navigator_ar.demo.model; // Или ваш выбранный пакет для сущностей
+package com.social_navigator_ar.demo.model;
 
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "users") // Убедитесь, что это соответствует вашей существующей таблице users
+@Table(name = "users")
 public class Login {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -18,10 +18,12 @@ public class Login {
     @Column(nullable = false)
     private String password;
 
-    @Column(name = "is_admin", nullable = false, columnDefinition = "boolean default false") // Убедитесь, что имя столбца соответствует БД, если он существует
+    @Column(name = "is_admin", nullable = false, columnDefinition = "boolean default false")
     private boolean isAdmin = false;
 
-    // Геттеры и сеттеры
+    @Column(name = "is_super_admin", nullable = false, columnDefinition = "boolean default false")
+    private boolean superAdmin = false;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public String getName() { return name; }
@@ -32,4 +34,6 @@ public class Login {
     public void setPassword(String password) { this.password = password; }
     public boolean isAdmin() { return isAdmin; }
     public void setAdmin(boolean admin) { isAdmin = admin; }
+    public boolean isSuperAdmin() { return superAdmin; }
+    public void setSuperAdmin(boolean superAdmin) { this.superAdmin = superAdmin; }
 }

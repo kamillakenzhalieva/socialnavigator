@@ -16,7 +16,6 @@ public class AuthController {
     private final LoginRepository loginRepository;
     private final PasswordEncoder passwordEncoder;
 
-    // @Autowired // Необязательна, если это единственный конструктор
     public AuthController(LoginRepository loginRepository, PasswordEncoder passwordEncoder) {
         this.loginRepository = loginRepository;
         this.passwordEncoder = passwordEncoder;
@@ -43,9 +42,6 @@ public class AuthController {
 
     @GetMapping("/register")
     public String showRegistrationForm(Model model) {
-        // Передаем пустой объект, если форма привязана к th:object (хотя в вашем HTML этого нет)
-        // model.addAttribute("userForm", new Login());
-        // Если форма не привязана, этот вызов не обязателен
         return "register";
     }
 
@@ -55,12 +51,11 @@ public class AuthController {
             @RequestParam String email,
             @RequestParam String password,
             @RequestParam("confirm-password") String confirmPassword,
-            Model model, // Используем Model для передачи ошибок обратно на ту же страницу
-            RedirectAttributes redirectAttributes) { // Используем RedirectAttributes для сообщений после успешного редиректа
+            Model model,
+            RedirectAttributes redirectAttributes) {
 
         if (name == null || name.trim().isEmpty()) {
             model.addAttribute("errorMessage", "Имя не может быть пустым.");
-            // Сохраняем введенные значения, чтобы они остались в форме
             model.addAttribute("name", name);
             model.addAttribute("email", email);
             return "register";
@@ -84,7 +79,7 @@ public class AuthController {
             return "register";
         }
 
-        String trimmedEmail = email.trim().toLowerCase(); // Приводим email к нижнему регистру
+        String trimmedEmail = email.trim().toLowerCase();
         if (loginRepository.existsByEmail(trimmedEmail)) {
             model.addAttribute("errorMessage", "Пользователь с таким email уже существует.");
             model.addAttribute("name", name.trim());
@@ -96,7 +91,7 @@ public class AuthController {
         newUser.setName(name.trim());
         newUser.setEmail(trimmedEmail);
         newUser.setPassword(passwordEncoder.encode(password));
-        newUser.setAdmin(false); // По умолчанию все новые пользователи не админы
+        newUser.setAdmin(false);
 
         try {
             loginRepository.save(newUser);

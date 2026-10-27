@@ -21,7 +21,6 @@ public class NavigatorController {
     private final UserProfilesRepository userProfilesRepository;
     private final LoginRepository loginRepository;
 
-    // @Autowired // Необязательна, если это единственный конструктор
     public NavigatorController(UserProfilesRepository userProfilesRepository,
                                LoginRepository loginRepository) {
         this.userProfilesRepository = userProfilesRepository;
@@ -44,9 +43,8 @@ public class NavigatorController {
                         isProfileIncomplete =
                                 (profile.getPhone() == null || profile.getPhone().trim().isEmpty()) ||
                                 (profile.getDiagnosis() == null || profile.getDiagnosis().trim().isEmpty());
-                        // Можно добавить другие обязательные поля для проверки
                     } else {
-                        isProfileIncomplete = true; // Профиля нет, значит он не заполнен
+                        isProfileIncomplete = true;
                     }
 
                     if (isProfileIncomplete) {
@@ -61,10 +59,7 @@ public class NavigatorController {
     @GetMapping("/cabinet")
     public String cabinet(Model model, Authentication authentication,
                           @RequestParam(value = "updated", required = false) Boolean updated,
-                          @RequestParam(value = "error", required = false) String error) { // Для общих ошибок, не связанных с RedirectAttributes
-        // Сообщения из RedirectAttributes уже должны быть доступны в модели благодаря Spring
-        // Например, successMessage или errorMessage
-
+                          @RequestParam(value = "error", required = false) String error) {
         String email = authentication.getName();
         Login user = loginRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Пользователь не найден: " + email));
@@ -73,8 +68,6 @@ public class NavigatorController {
                 .orElseGet(() -> {
                     UserProfiles newProfile = new UserProfiles();
                     newProfile.setUser(user);
-                    // Если нужно, чтобы пустой профиль создавался при первом заходе:
-                    // return userProfilesRepository.save(newProfile);
                     return newProfile;
                 });
 
@@ -91,7 +84,6 @@ public class NavigatorController {
         Login user = loginRepository.findByEmail(authEmail)
                 .orElseThrow(() -> new RuntimeException("Пользователь не найден: " + authEmail));
 
-        // Обновление имени пользователя
         String newName = formData.get("name");
         if (newName != null && !newName.trim().isEmpty()) {
             user.setName(newName.trim());
@@ -101,7 +93,6 @@ public class NavigatorController {
         }
         loginRepository.save(user);
 
-        // Обновление или создание профиля пользователя
         UserProfiles profile = userProfilesRepository.findByUserId(user.getId())
                 .orElseGet(() -> {
                     UserProfiles newProfile = new UserProfiles();
@@ -117,13 +108,11 @@ public class NavigatorController {
             try {
                 profile.setChildAge(Integer.valueOf(childAgeStr.trim()));
             } catch (NumberFormatException e) {
-                // Можно установить null или вернуть ошибку
                 profile.setChildAge(null);
                 redirectAttributes.addFlashAttribute("errorMessage", "Некорректный формат возраста ребенка.");
-                // return "redirect:/cabinet"; // Если это критичная ошибка
             }
         } else {
-            profile.setChildAge(null); // Если поле пустое
+            profile.setChildAge(null);
         }
 
         try {

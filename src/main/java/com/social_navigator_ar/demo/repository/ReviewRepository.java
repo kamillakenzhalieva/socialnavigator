@@ -20,5 +20,5 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
             "ORDER BY r.createdAt ASC")
     List<ReviewDTO> findDTOsByMarkerId(@Param("markerId") Long markerId);
 
-    //List<Review> findByMarkerIdOrderByCreatedAtDesc(Long );
+    void deleteByMarkerId(Long markerId);
 }

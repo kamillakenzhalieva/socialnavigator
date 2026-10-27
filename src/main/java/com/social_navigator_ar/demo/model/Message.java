@@ -26,9 +26,8 @@ public class Message {
     @Column(name = "parent_message_id")
     private Long parentMessageId;
 
-    // Конструкторы
     public Message() {
-        this.isAdminResponse = false; // По умолчанию сообщение не от админа
+        this.isAdminResponse = false;
     }
 
     public Message(String userId, String text, LocalDateTime timestamp) {
@@ -38,7 +37,6 @@ public class Message {
         this.isAdminResponse = false;
     }
 
-    // Геттеры и сеттеры
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -51,7 +49,7 @@ public class Message {
     public LocalDateTime getTimestamp() { return timestamp; }
     public void setTimestamp(LocalDateTime timestamp) { this.timestamp = timestamp; }
 
-    public boolean isAdminResponse() { return isAdminResponse; } // Переименован
+    public boolean isAdminResponse() { return isAdminResponse; }
     public void setIsAdminResponse(boolean isAdminResponse) { this.isAdminResponse = isAdminResponse; }
 
     public Long getParentMessageId() { return parentMessageId; }

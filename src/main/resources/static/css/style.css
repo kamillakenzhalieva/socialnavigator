@@ -5,7 +5,6 @@ body {
     margin: 0;
 }
 
-/* --- Базовые стили сайдбара --- */
 .sidebar {
     width: 280px;
     height: 100vh;
@@ -26,7 +25,6 @@ body {
     left: 0;
 }
 
-/* --- Стили для кастомизации скроллбара сайдбара --- */
 .sidebar::-webkit-scrollbar {
     width: 8px;
 }
@@ -48,13 +46,11 @@ body {
 }
 
 .sidebar {
-    /* Для Firefox */
     scrollbar-width: thin;
     scrollbar-color: #ced4da #f8f9fa;
 }
 
 
-/* --- Стили для элементов внутри сайдбара --- */
 .sidebar h3 {
     font-family: 'Inter', sans-serif;
     font-weight: 900;
@@ -195,7 +191,6 @@ body {
     transform: rotate(90deg);
 }
 
-/* Цветовые схемы */
 .sidebar .color-scheme-red .service-icon-wrapper i,
 .sidebar .color-scheme-red .service-title {
     color: #E91E63;
@@ -227,7 +222,6 @@ body {
 }
 
 
-/* Стили для подкатегорий (возрастные группы) */
 .sidebar .filter-subcategory {
     display: none;
     padding-left: 0;
@@ -269,13 +263,10 @@ body {
     font-weight: 500;
 }
 
-/* --- Стили для основного контента и карты --- */
 #main-content {
     margin-left: 0;
-    /* Плавная анимация сдвига контента И ИЗМЕНЕНИЯ ШИРИНЫ */
     transition: margin-left 0.3s ease-in-out, width 0.3s ease-in-out;
     position: relative;
-    /* ВАЖНО для позиционирования дочерних absolute элементов */
     width: 100%;
     height: 100vh;
 }
@@ -300,7 +291,6 @@ body {
     position: absolute;
     top: 15px;
     left: 15px;
-    /* Всегда 15px от левого края #main-content */
     font-size: 24px;
     padding: 5px 10px;
     background-color: rgba(255, 255, 255, 0.8);
@@ -326,59 +316,65 @@ body {
     z-index: 999;
 }
 
-/* === Стили для новой информационной панели организации === */
 .info-panel {
     position: fixed;
-    /* Фиксированное позиционирование относительно viewport */
     left: -360px;
-    /* Изначально полностью скрыта слева (ширина + небольшой запас) */
     top: 0;
     width: 350px;
-    /* Ширина панели */
     height: 100vh;
-    /* На всю высоту экрана */
     background-color: #ffffff;
     box-shadow: 3px 0 15px rgba(0, 0, 0, 0.15);
     z-index: 1002;
-    /* Выше карты (z-index: 1000 у сайдбара, кнопки меню/auth 1001/999) */
     transition: left 0.35s ease-in-out;
     padding: 20px;
     box-sizing: border-box;
     overflow-y: auto;
-    /* Прокрутка, если контент не помещается */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
     font-family: 'Inter', sans-serif;
+}
+
+.info-panel::-webkit-scrollbar {
+    display: none;
 }
 
 .info-panel.active {
     left: 0;
-    /* Панель выезжает слева */
 }
 
-/* Если основной сайдбар активен, то инфо-панель должна быть правее него */
-/* Это правило нужно, если вы хотите, чтобы они могли быть открыты одновременно и не перекрывали друг друга */
 body:has(#sidebar.active) .info-panel.active {
     left: 280px;
-    /* Ширина вашего #sidebar */
-    /* Можно добавить transition и для этого случая, если необходимо */
 }
 
 
 .info-panel-close {
-    position: absolute;
-    top: 15px;
-    right: 20px;
-    font-size: 28px;
-    font-weight: bold;
-    color: #777;
-    background: none;
-    border: none;
+    position: fixed;
+    top: 50%;
+    left: -40px;
+    transform: translateY(-50%);
+    z-index: 1003;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background-color: #ffffff;
+    border: 1px solid #e2e6ea;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+    color: #3498db;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
-    padding: 0;
-    line-height: 1;
+    transition: left 0.35s ease-in-out, background-color 0.2s, color 0.2s;
+}
+
+#info-panel-organization.active + .info-panel-close {
+    left: 350px;
 }
 
 .info-panel-close:hover {
-    color: #333;
+    color: #fff;
+    background-color: #3498db;
 }
 
 .info-panel-header {
@@ -406,7 +402,6 @@ body:has(#sidebar.active) .info-panel.active {
     height: 100%;
     object-fit: cover;
     border-radius: 6px;
-    /* Если фото загружено, скруглим его */
 }
 
 
@@ -432,23 +427,6 @@ body:has(#sidebar.active) .info-panel.active {
     margin-right: 5px;
 }
 
-/* Адаптация основного контента, если инфо-панель активна (сдвиг карты) */
-/* Это опционально. По умолчанию панель будет перекрывать карту. */
-/* Чтобы карта сдвигалась, нужно будет управлять классом на #main-content из JS */
-/*
-#main-content.info-panel-visible {
-    margin-left: 350px; // Ширина info-panel
-    width: calc(100% - 350px);
-}
-
-// Если и сайдбар, и инфо-панель активны
-#main-content.sidebar-active.info-panel-visible {
-    margin-left: calc(280px + 350px); // Ширина сайдбара + ширина инфо-панели
-    width: calc(100% - (280px + 350px));
-}
-*/
-
-/* Стили для вкладок информационной панели */
 .info-panel-tabs {
     display: flex;
     border-bottom: 1px solid #e9ecef;
@@ -501,16 +479,21 @@ body:has(#sidebar.active) .info-panel.active {
     text-decoration: underline;
 }
 
-/* Стили для отзывов */
 .reviews-container {
     margin-top: 10px;
 }
 
 .reviews-list {
-    max-height: 200px;
+    max-height: 260px;
     overflow-y: auto;
     margin-bottom: 20px;
     padding-right: 5px;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.reviews-list::-webkit-scrollbar {
+    display: none;
 }
 
 .review-item {
@@ -520,16 +503,13 @@ body:has(#sidebar.active) .info-panel.active {
     border-radius: 6px;
     border-left: 3px solid #007bff;
     max-width: 300px;
-    /* Максимальная ширина отзыва */
     word-break: break-word;
-    /* Перенос слова */
 }
 
 .review-text {
     display: -webkit-box;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 3;
-    /* Ограничиваем до 3 строк */
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: pre-wrap;
@@ -540,10 +520,8 @@ body:has(#sidebar.active) .info-panel.active {
     margin-bottom: 8px;
     transition: max-height 0.3s ease-out;
     max-height: 72px;
-    /* 3 строки по 24px */
 }
 
-/* Когда пользователь нажимает "Скрыть", убираем ограничение */
 .review-text.full {
     -webkit-line-clamp: unset;
     overflow: visible;
@@ -663,9 +641,6 @@ body:has(#sidebar.active) .info-panel.active {
     background-color: #218838;
 }
 
-
-
-/* Стили для чат-бота */
 .chatbot-container {
     position: fixed;
     bottom: 20px;
@@ -838,7 +813,6 @@ body:has(#sidebar.active) .info-panel.active {
     display: -webkit-box;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 3;
-    /* Например, 3 строки */
     line-clamp: 3;
     overflow: hidden;
 }
@@ -847,9 +821,9 @@ body:has(#sidebar.active) .info-panel.active {
     background: none;
     border: 1px solid #3498db;
     cursor: pointer;
-    bottom: 45px; /* Отступ от низа */
-    left: 1px; /* Отступ от правого края */
-    z-index: 1000; /* Поверх карты */
+    bottom: 45px;
+    left: 1px;
+    z-index: 1000;
     font-size: inherit;
     margin: 0 12px;
     text-decoration: none;
@@ -879,28 +853,24 @@ body:has(#sidebar.active) .info-panel.active {
     animation: slideIn 0.3s ease-out forwards, fadeOut 5s ease-in 3s forwards;
 }
 
-/* Стиль info — аналог "заполните профиль" */
 .notification.info {
     background-color: #fff3cd;
     color: #856404;
     border: 1px solid #ffeeba;
 }
 
-/* Успешное действие */
 .notification.success {
     background-color: #d4edda;
     color: #155724;
     border: 1px solid #c3e6cb;
 }
 
-/* Ошибка */
 .notification.error {
     background-color: #f8d7da;
     color: #721c24;
     border: 1px solid #f5c6cb;
 }
 
-/* Закрытие уведомления */
 .notification .notification-close {
     font-size: 1.2rem;
     margin-left: 15px;
@@ -919,4 +889,600 @@ body:has(#sidebar.active) .info-panel.active {
 }
 @keyframes fadeOut {
     to { opacity: 0; transform: translateX(100%); }
+}
+
+.info-image-carousel {
+    position: relative;
+    width: 100%;
+    height: 200px;
+    background-color: #f0f2f5;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 15px;
+}
+
+.info-image-empty {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #a5b1c2;
+    font-size: 1em;
+    border: 2px dashed #d1d8e0;
+    border-radius: 8px;
+    box-sizing: border-box;
+}
+
+.info-carousel-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    cursor: zoom-in;
+    transition: opacity 0.2s ease-in-out;
+}
+
+.carousel-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: rgba(255, 255, 255, 0.85);
+    border: none;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #2d3436;
+    font-size: 13px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+    transition: background-color 0.2s;
+    z-index: 2;
+}
+
+.carousel-arrow:hover {
+    background-color: #ffffff;
+}
+
+.carousel-arrow-prev { left: 8px; }
+.carousel-arrow-next { right: 8px; }
+
+.carousel-dots {
+    position: absolute;
+    bottom: 8px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    z-index: 2;
+}
+
+.carousel-dots .carousel-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.6);
+    border: 1px solid rgba(0,0,0,0.15);
+    cursor: pointer;
+    padding: 0;
+}
+
+.carousel-dots .carousel-dot.active {
+    background-color: #ffffff;
+    border-color: #3498db;
+}
+
+.info-panel-edit-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 15px;
+    padding: 9px 16px;
+    font-size: 0.92em;
+    font-weight: 500;
+    border-radius: 5px;
+    background-color: #f0f2f5;
+    border: 1px solid #3498db;
+    color: #3498db;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.info-panel-edit-btn:hover {
+    background-color: #3498db;
+    color: #fff;
+}
+
+.fullscreen-image-modal {
+    display: none;
+    position: fixed;
+    z-index: 9999;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.9);
+}
+
+.fullscreen-image-modal .modal-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    margin: 0;
+    max-width: 88%;
+    max-height: 78vh;
+    border-radius: 8px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+}
+
+.fullscreen-image-modal .close-btn {
+    position: absolute;
+    top: 20px;
+    right: 35px;
+    color: white;
+    font-size: 40px;
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 3;
+}
+
+.fullscreen-image-modal .close-btn:hover {
+    color: #bbb;
+}
+
+.modal-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: rgba(255, 255, 255, 0.15);
+    border: none;
+    color: #fff;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    font-size: 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s;
+    z-index: 3;
+}
+
+.modal-arrow:hover {
+    background-color: rgba(255, 255, 255, 0.35);
+}
+
+.modal-arrow-prev { left: 25px; }
+.modal-arrow-next { right: 25px; }
+
+.fullscreen-image-caption {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 18px 30px 22px;
+    background: linear-gradient(to top, rgba(0,0,0,0.75), rgba(0,0,0,0));
+    color: #fff;
+    text-align: center;
+}
+
+.fullscreen-image-caption-name {
+    font-size: 1.3em;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.fullscreen-image-caption-address {
+    font-size: 0.95em;
+    color: #e2e2e2;
+}
+
+.fullscreen-image-dots {
+    position: absolute;
+    bottom: 100px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    z-index: 3;
+}
+
+.fullscreen-image-dots .carousel-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.4);
+    border: none;
+    cursor: pointer;
+    padding: 0;
+}
+
+.fullscreen-image-dots .carousel-dot.active {
+    background-color: #ffffff;
+}
+
+.admin-edit-mode-button {
+    position: absolute;
+    top: 17px;
+    right: 95px;
+    background-color: rgba(255, 255, 255, 0.9);
+    border: 1px solid #3498db;
+    color: #3498db;
+    padding: 5px 12px;
+    border-radius: 4px;
+    font-size: inherit;
+    cursor: pointer;
+    z-index: 1002;
+    transition: background-color 0.3s, color 0.3s;
+    white-space: nowrap;
+}
+
+.admin-edit-mode-button:hover {
+    background-color: #3498db;
+    color: #fff;
+}
+
+.admin-edit-mode-button.active {
+    background-color: #e74c3c;
+    border-color: #e74c3c;
+    color: #fff;
+}
+
+.edit-mode-hint {
+    position: absolute;
+    top: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(231, 76, 60, 0.95);
+    color: #fff;
+    padding: 8px 18px;
+    border-radius: 20px;
+    font-size: 0.9em;
+    z-index: 1000;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    text-align: center;
+    max-width: 90%;
+}
+
+#map-container.edit-mode-active #map {
+    cursor: crosshair;
+}
+
+.marker-form-modal {
+    display: none;
+    position: fixed;
+    z-index: 2000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.5);
+}
+
+.marker-form-modal-content {
+    background-color: #fff;
+    margin: 5% auto;
+    padding: 25px 30px 30px;
+    width: 90%;
+    max-width: 520px;
+    border-radius: 8px;
+    position: relative;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+    font-family: 'Inter', sans-serif;
+}
+
+.marker-form-modal-content h3 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: #2c3e50;
+}
+
+.marker-form-modal-content .form-group {
+    margin-bottom: 16px;
+}
+
+.marker-form-modal-content label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 500;
+    color: #555;
+    font-size: 0.92em;
+}
+
+.marker-form-modal-content input[type="text"],
+.marker-form-modal-content input[type="email"],
+.marker-form-modal-content select {
+    width: 100%;
+    padding: 9px 10px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    box-sizing: border-box;
+    font-size: 1em;
+}
+
+.marker-form-modal-content input:focus,
+.marker-form-modal-content select:focus {
+    border-color: #3498db;
+    outline: none;
+    box-shadow: 0 0 0 0.1rem rgba(52, 152, 219, 0.25);
+}
+
+.marker-form-existing-images {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.marker-form-existing-images .existing-image-thumb {
+    position: relative;
+    width: 70px;
+    height: 70px;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid #ddd;
+}
+
+.marker-form-existing-images .existing-image-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.marker-form-existing-images .existing-image-thumb .remove-existing-image {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background-color: rgba(231, 76, 60, 0.9);
+    color: #fff;
+    border: none;
+    font-size: 11px;
+    line-height: 18px;
+    text-align: center;
+    cursor: pointer;
+    padding: 0;
+}
+
+.marker-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 22px;
+}
+
+.marker-form-actions .btn {
+    padding: 9px 18px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    font-size: 0.95em;
+    font-weight: 500;
+    background-color: #e9ecef;
+    color: #333;
+    transition: background-color 0.2s;
+}
+
+.marker-form-actions .btn-primary {
+    background-color: #28a745;
+    color: #fff;
+}
+
+.marker-form-actions .btn-primary:hover { background-color: #218838; }
+.marker-form-actions .btn:hover { background-color: #dee2e6; }
+
+.marker-action-modal {
+    display: none;
+    position: fixed;
+    z-index: 2000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.45);
+}
+
+.marker-action-modal-content {
+    background-color: #fff;
+    margin: 20% auto;
+    padding: 25px;
+    width: 90%;
+    max-width: 340px;
+    border-radius: 8px;
+    text-align: center;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+    font-family: 'Inter', sans-serif;
+}
+
+.marker-action-modal-content h4 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: #2c3e50;
+}
+
+.marker-action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.marker-action-buttons .btn {
+    padding: 10px 14px;
+    border-radius: 5px;
+    border: none;
+    cursor: pointer;
+    font-size: 0.95em;
+    font-weight: 500;
+}
+
+.marker-action-buttons .btn-primary { background-color: #3498db; color: #fff; }
+.marker-action-buttons .btn-primary:hover { background-color: #2980b9; }
+.marker-action-buttons .btn-danger { background-color: #e74c3c; color: #fff; }
+.marker-action-buttons .btn-danger:hover { background-color: #c0392b; }
+
+.marker-action-cancel {
+    background: none;
+    border: none;
+    color: #777;
+    cursor: pointer;
+    font-size: 0.9em;
+    padding: 6px 0;
+}
+.marker-action-cancel:hover { color: #333; }
+
+.confirm-modal {
+    display: none;
+    position: fixed;
+    z-index: 2100;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+}
+
+.confirm-modal-content {
+    background-color: #fff;
+    margin: 22% auto;
+    padding: 25px;
+    width: 90%;
+    max-width: 380px;
+    border-radius: 8px;
+    text-align: center;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+    font-family: 'Inter', sans-serif;
+}
+
+.confirm-modal-content p {
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: #333;
+    font-size: 1.02em;
+    line-height: 1.5;
+}
+
+.confirm-modal-actions {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+}
+
+.confirm-modal-actions .btn {
+    padding: 9px 20px;
+    border-radius: 5px;
+    border: none;
+    cursor: pointer;
+    font-size: 0.95em;
+    font-weight: 500;
+    background-color: #e9ecef;
+    color: #333;
+}
+
+.confirm-modal-actions .btn-danger {
+    background-color: #e74c3c;
+    color: #fff;
+}
+.confirm-modal-actions .btn-danger:hover { background-color: #c0392b; }
+.confirm-modal-actions .btn:hover { background-color: #dee2e6; }
+
+.validation-error {
+    color: #e74c3c;
+    font-size: 0.88em;
+    margin-top: 4px;
+}
+
+.crop-modal {
+    display: none;
+    position: fixed;
+    z-index: 2200;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.6);
+}
+
+.crop-modal-content {
+    background-color: #fff;
+    margin: 3% auto;
+    padding: 22px 26px 26px;
+    width: 92%;
+    max-width: 560px;
+    border-radius: 8px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+    font-family: 'Inter', sans-serif;
+}
+
+.crop-modal-content h3 {
+    margin-top: 0;
+    margin-bottom: 6px;
+    color: #2c3e50;
+}
+
+.crop-modal-hint {
+    margin-top: 0;
+    margin-bottom: 16px;
+    color: #777;
+    font-size: 0.88em;
+    line-height: 1.4;
+}
+
+.crop-modal-canvas-wrap {
+    width: 100%;
+    max-height: 60vh;
+    overflow: hidden;
+    background-color: #222;
+    border-radius: 6px;
+}
+
+.crop-modal-canvas-wrap img {
+    display: block;
+    max-width: 100%;
+}
+
+.crop-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 18px;
+}
+
+.crop-modal-actions .btn {
+    padding: 9px 18px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    font-size: 0.95em;
+    font-weight: 500;
+    background-color: #e9ecef;
+    color: #333;
+}
+
+.crop-modal-actions .btn-primary {
+    background-color: #28a745;
+    color: #fff;
+}
+.crop-modal-actions .btn-primary:hover { background-color: #218838; }
+.crop-modal-actions .btn:hover { background-color: #dee2e6; }
+
+.marker-form-existing-images .existing-image-thumb img {
+    object-fit: cover;
+}
+
+.form-hint {
+    margin-top: 6px;
+    font-size: 0.8em;
+    color: #888;
+    line-height: 1.4;
 }

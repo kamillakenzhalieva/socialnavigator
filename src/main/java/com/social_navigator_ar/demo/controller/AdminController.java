@@ -5,14 +5,19 @@ import com.social_navigator_ar.demo.model.Marker;
 import com.social_navigator_ar.demo.model.Message;
 import com.social_navigator_ar.demo.repository.LoginRepository;
 import com.social_navigator_ar.demo.repository.MarkerRepository;
+import com.social_navigator_ar.demo.repository.MarkerViewLogRepository;
 import com.social_navigator_ar.demo.repository.MessageRepository;
+import com.social_navigator_ar.demo.repository.ReviewRepository;
+import com.social_navigator_ar.demo.service.AdminNotificationService;
 import com.social_navigator_ar.demo.service.FileStorageService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -37,22 +42,43 @@ public class AdminController {
     private final MessageRepository messageRepository;
     private final FileStorageService fileStorageService;
     private final PasswordEncoder passwordEncoder;
+    private final AdminNotificationService adminNotificationService;
+    private final ReviewRepository reviewRepository;
+    private final MarkerViewLogRepository markerViewLogRepository;
 
     public AdminController(LoginRepository loginRepository,
                            MarkerRepository markerRepository,
                            MessageRepository messageRepository,
                            FileStorageService fileStorageService,
-                           PasswordEncoder passwordEncoder) {
+                           PasswordEncoder passwordEncoder,
+                           AdminNotificationService adminNotificationService,
+                           ReviewRepository reviewRepository,
+                           MarkerViewLogRepository markerViewLogRepository) {
         this.loginRepository = loginRepository;
         this.markerRepository = markerRepository;
         this.messageRepository = messageRepository;
         this.fileStorageService = fileStorageService;
         this.passwordEncoder = passwordEncoder;
+        this.adminNotificationService = adminNotificationService;
+        this.reviewRepository = reviewRepository;
+        this.markerViewLogRepository = markerViewLogRepository;
     }
 
-    // === Главная панель администратора ===
     @GetMapping("/panel")
     public String adminPanel(Model model, Authentication authentication) {
+        String email = authentication.getName();
+        Login adminUser = loginRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Администратор не найден: " + email));
+
+        model.addAttribute("adminUser", adminUser);
+        model.addAttribute("isSuperAdmin", adminUser.isSuperAdmin());
+        model.addAttribute("notifications", adminNotificationService.latest());
+
+        return "admin-panel";
+    }
+
+    @GetMapping("/organizations")
+    public String organizationsPage(Model model, Authentication authentication) {
         String email = authentication.getName();
         Login adminUser = loginRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Администратор не найден: " + email));
@@ -60,6 +86,7 @@ public class AdminController {
         List<Marker> markers = markerRepository.findAll();
 
         model.addAttribute("adminUser", adminUser);
+        model.addAttribute("isSuperAdmin", adminUser.isSuperAdmin());
         model.addAttribute("markers", markers);
 
         if (!model.containsAttribute("newMarker")) {
@@ -69,84 +96,115 @@ public class AdminController {
             model.addAttribute("editMarker", new Marker());
         }
 
-        return "admin-panel";
+        return "admin-organizations";
     }
 
-    // === Добавление маркера с фото ===
     @PostMapping("/markers/add")
     public String addMarker(@Valid @ModelAttribute("newMarker") Marker marker,
                             BindingResult result,
                             @RequestParam("photo") MultipartFile photo,
-                            RedirectAttributes redirectAttributes) {
+                            RedirectAttributes redirectAttributes,
+                            Authentication authentication) {
 
         if (result.hasErrors()) {
             redirectAttributes.addFlashAttribute("org.springframework.validation.BindingResult.newMarker", result);
             redirectAttributes.addFlashAttribute("newMarker", marker);
-            return "redirect:/admin/panel#add-marker-form-section";
+            return "redirect:/admin/organizations";
         }
 
         try {
             if (!photo.isEmpty()) {
                 String imageUrl = fileStorageService.storeFile(photo);
-                marker.setImageUrl(imageUrl);
+                marker.setImageUrls(List.of(imageUrl));
             }
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("errorMessage", "Ошибка при загрузке фото");
-            return "redirect:/admin/panel#add-marker-form-section";
+            return "redirect:/admin/organizations";
         }
 
         markerRepository.save(marker);
+
+        String adminName = loginRepository.findByEmail(authentication.getName())
+                .map(Login::getName)
+                .orElse(authentication.getName());
+        adminNotificationService.record(
+                "MARKER_ADDED",
+                "Добавлена новая организация «" + marker.getName() + "» администратором " + adminName
+        );
+
         redirectAttributes.addFlashAttribute("successMessage", "Маркер успешно добавлен");
-        return "redirect:/admin/panel";
+        return "redirect:/admin/organizations";
     }
 
-    // === Редактирование маркера с фото ===
     @PostMapping("/markers/update")
     public String updateMarker(@Valid @ModelAttribute("editMarker") Marker marker,
                                BindingResult result,
                                @RequestParam(name = "photo", required = false) MultipartFile photo,
-                               RedirectAttributes redirectAttributes) {
+                               RedirectAttributes redirectAttributes,
+                               Authentication authentication) {
 
         if (result.hasErrors()) {
             redirectAttributes.addFlashAttribute("org.springframework.validation.BindingResult.editMarker", result);
             redirectAttributes.addFlashAttribute("editMarker", marker);
             redirectAttributes.addFlashAttribute("openEditModalForId", marker.getId());
-            return "redirect:/admin/panel";
+            return "redirect:/admin/organizations";
         }
 
         Marker existingMarker = markerRepository.findById(marker.getId())
                 .orElseThrow(() -> new IllegalArgumentException("Неверный ID маркера"));
 
         try {
+            List<String> images = new java.util.ArrayList<>(existingMarker.getImageUrls());
             if (photo != null && !photo.isEmpty()) {
                 String imageUrl = fileStorageService.storeFile(photo);
-                marker.setImageUrl(imageUrl);
-            } else {
-                marker.setImageUrl(existingMarker.getImageUrl());
+                images.add(imageUrl);
             }
+            marker.setImageUrls(images);
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("errorMessage", "Ошибка при загрузке фото");
-            return "redirect:/admin/panel";
+            return "redirect:/admin/organizations";
         }
 
         markerRepository.save(marker);
+
+        String adminName = loginRepository.findByEmail(authentication.getName())
+                .map(Login::getName)
+                .orElse(authentication.getName());
+        adminNotificationService.record(
+                "MARKER_UPDATED",
+                "Изменены данные организации «" + marker.getName() + "» администратором " + adminName
+        );
+
         redirectAttributes.addFlashAttribute("successMessage", "Маркер успешно обновлён");
-        return "redirect:/admin/panel";
+        return "redirect:/admin/organizations";
     }
 
-    // === Удаление маркера ===
     @PostMapping("/markers/delete")
-    public String deleteMarker(@RequestParam Long id, RedirectAttributes redirectAttributes) {
-        if (markerRepository.existsById(id)) {
+    @org.springframework.transaction.annotation.Transactional
+    public String deleteMarker(@RequestParam Long id, RedirectAttributes redirectAttributes, Authentication authentication) {
+        Optional<Marker> markerOpt = markerRepository.findById(id);
+        if (markerOpt.isPresent()) {
+            String markerName = markerOpt.get().getName();
+
+            reviewRepository.deleteByMarkerId(id);
+            markerViewLogRepository.deleteByMarkerId(id);
             markerRepository.deleteById(id);
+
+            String adminName = loginRepository.findByEmail(authentication.getName())
+                    .map(Login::getName)
+                    .orElse(authentication.getName());
+            adminNotificationService.record(
+                    "MARKER_DELETED",
+                    "Удалена организация «" + markerName + "» администратором " + adminName
+            );
+
             redirectAttributes.addFlashAttribute("successMessage", "Маркер успешно удалён.");
         } else {
             redirectAttributes.addFlashAttribute("errorMessage", "Маркер с ID " + id + " не найден.");
         }
-        return "redirect:/admin/panel";
+        return "redirect:/admin/organizations";
     }
 
-    // === Получить маркер как JSON ===
     @GetMapping("/markers/api/{id}")
     @ResponseBody
     public Marker getMarkerApi(@PathVariable Long id) {
@@ -154,70 +212,86 @@ public class AdminController {
                 .orElseThrow(() -> new IllegalArgumentException("Неверный ID маркера: " + id));
     }
 
-    // === Добавление администратора ===
-    @PostMapping("/add-admin")
-    public String addAdmin(@RequestParam String name,
-                           @RequestParam String email,
-                           @RequestParam String password,
-                           @RequestParam String confirmPassword,
-                           RedirectAttributes redirectAttributes) {
+    @PostMapping("/profile/update-field")
+    @ResponseBody
+    public ResponseEntity<?> updateProfileField(@RequestBody Map<String, String> body, Authentication authentication) {
+        String field = body.get("field");
+        String value = body.get("value");
 
-        if (name == null || name.trim().isEmpty()) {
-            redirectAttributes.addFlashAttribute("adminFormError", "Имя администратора не может быть пустым.");
-            return "redirect:/admin/panel#add-admin-form-section";
+        if (value == null || value.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Поле не может быть пустым"));
         }
 
-        if (email == null || email.trim().isEmpty() || !email.contains("@")) {
-            redirectAttributes.addFlashAttribute("adminFormError", "Введите корректный email администратора.");
-            return "redirect:/admin/panel#add-admin-form-section";
+        Login admin = loginRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new RuntimeException("Администратор не найден"));
+
+        String trimmedValue = value.trim();
+
+        if ("name".equals(field)) {
+            admin.setName(trimmedValue);
+            loginRepository.save(admin);
+            return ResponseEntity.ok(Map.of("value", admin.getName()));
         }
 
-        if (password == null || password.length() < 8) {
-            redirectAttributes.addFlashAttribute("adminFormError", "Пароль должен содержать не менее 8 символов.");
-            return "redirect:/admin/panel#add-admin-form-section";
+        if ("email".equals(field)) {
+            String newEmail = trimmedValue.toLowerCase();
+            if (!newEmail.contains("@")) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Введите корректный email"));
+            }
+            if (!newEmail.equalsIgnoreCase(admin.getEmail()) && loginRepository.existsByEmail(newEmail)) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Этот email уже используется"));
+            }
+            admin.setEmail(newEmail);
+            loginRepository.save(admin);
+
+            UsernamePasswordAuthenticationToken newAuth = new UsernamePasswordAuthenticationToken(
+                    admin.getEmail(), authentication.getCredentials(), authentication.getAuthorities());
+            SecurityContextHolder.getContext().setAuthentication(newAuth);
+
+            return ResponseEntity.ok(Map.of("value", admin.getEmail()));
         }
 
-        if (!password.equals(confirmPassword)) {
-            redirectAttributes.addFlashAttribute("adminFormError", "Пароли не совпадают.");
-            return "redirect:/admin/panel#add-admin-form-section";
-        }
-
-        if (loginRepository.existsByEmail(email)) {
-            redirectAttributes.addFlashAttribute("adminFormError", "Пользователь с таким email уже существует.");
-            return "redirect:/admin/panel#add-admin-form-section";
-        }
-
-        Login newAdmin = new Login();
-        newAdmin.setName(name.trim());
-        newAdmin.setEmail(email.trim().toLowerCase());
-        newAdmin.setPassword(passwordEncoder.encode(password)); // Предполагается, что пароль уже захэширован на уровне сервиса
-        newAdmin.setAdmin(true);
-
-        try {
-            loginRepository.save(newAdmin);
-            redirectAttributes.addFlashAttribute("adminFormSuccess", "Новый администратор '" + newAdmin.getName() + "' успешно добавлен.");
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("adminFormError", "Ошибка при добавлении администратора: " + e.getMessage());
-        }
-
-        return "redirect:/admin/panel#add-admin-form-section";
+        return ResponseEntity.badRequest().body(Map.of("message", "Неизвестное поле"));
     }
 
-    // === Список чатов ===
+    @PostMapping("/profile/change-password")
+    @ResponseBody
+    public ResponseEntity<?> changePassword(@RequestBody Map<String, String> body, Authentication authentication) {
+        String newPassword = body.get("newPassword");
+        String confirmPassword = body.get("confirmPassword");
+
+        if (newPassword == null || newPassword.length() < 8) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Пароль должен содержать не менее 8 символов"));
+        }
+        if (!newPassword.equals(confirmPassword)) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Пароли не совпадают"));
+        }
+
+        Login admin = loginRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new RuntimeException("Администратор не найден"));
+
+        admin.setPassword(passwordEncoder.encode(newPassword));
+        loginRepository.save(admin);
+
+        return ResponseEntity.ok(Map.of("message", "Пароль успешно изменён"));
+    }
+
     @GetMapping("/chats")
-    public String showChatList(Model model) {
+    public String showChatList(Model model, Authentication authentication) {
         model.addAttribute("messages", messageRepository.findAll());
+
+        loginRepository.findByEmail(authentication.getName())
+                .ifPresent(admin -> model.addAttribute("isSuperAdmin", admin.isSuperAdmin()));
+
         return "chat-list";
     }
 
-    // === API для чатов ===
     @GetMapping("/api/chat/admin/messages")
     @ResponseBody
     public List<Message> getAdminMessages() {
         return messageRepository.findAll();
     }
 
-    // === Обработка ошибок валидации ===
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, String>> handleValidationExceptions(MethodArgumentNotValidException ex) {
         Map<String, String> errors = new HashMap<>();

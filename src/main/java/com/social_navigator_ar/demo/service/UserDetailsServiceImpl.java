@@ -19,29 +19,25 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
     private final LoginRepository loginRepository;
 
-    // @Autowired // Необязательна, если это единственный конструктор
     public UserDetailsServiceImpl(LoginRepository loginRepository) {
         this.loginRepository = loginRepository;
     }
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        // Ищем пользователя по email, приводим email к нижнему регистру для
-        // нечувствительного к регистру поиска
-        // (предполагается, что email в базе данных также хранится в нижнем регистре или
-        // поиск в БД нечувствителен к регистру)
         Login userLogin = loginRepository.findByEmail(email.toLowerCase())
                 .orElseThrow(() -> new UsernameNotFoundException("Пользователь с email '" + email + "' не найден"));
 
         Set<GrantedAuthority> authorities = new HashSet<>();
         if (userLogin.isAdmin()) {
             authorities.add(new SimpleGrantedAuthority("ROLE_ADMIN"));
+            if (userLogin.isSuperAdmin()) {
+                authorities.add(new SimpleGrantedAuthority("ROLE_SUPER_ADMIN"));
+            }
         } else {
-            authorities.add(new SimpleGrantedAuthority("ROLE_USER")); // Обычным пользователям даем роль USER
+            authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
         }
 
-        // Создаем и возвращаем объект UserDetails, который использует Spring Security
-        // Используем импортированный org.springframework.security.core.userdetails.User
         return new User(
                 userLogin.getEmail(),
                 userLogin.getPassword(),

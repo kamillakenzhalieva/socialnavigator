@@ -11,7 +11,6 @@ public class ReviewDTO {
     private Integer rating;
     private LocalDateTime createdAt;
 
-    // Конструктор для JPQL (важен порядок!)
     public ReviewDTO(
             Long id,
             String text,
@@ -28,7 +27,6 @@ public class ReviewDTO {
         this.markerId = markerId;
     }
 
-    // Геттеры и сеттеры
     public Long getId() {
         return id;
     }

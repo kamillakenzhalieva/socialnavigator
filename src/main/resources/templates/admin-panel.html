@@ -2,131 +2,815 @@
 <html lang="ru" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security6">
 <head>
     <meta charset="UTF-8">
-    <title>Админ-панель</title>
-    <script src="https://api-maps.yandex.ru/2.1/?apikey=c346c275-4f93-44c4-8aa1-f67dc426e367&lang=ru_RU"></script>
+    <title>Админ-панель — Социальный навигатор</title>
     <link rel="stylesheet" th:href="@{/css/style.css}">
     <style>
-        body { font-family: 'Inter', sans-serif; margin: 0; padding: 20px; background-color: #f4f7f6; color: #333; }
-        .admin-container { max-width: 1200px; margin: 20px auto; background: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 2px 15px rgba(0,0,0,0.1); }
-        h1, h2 { text-align: center; color: #2c3e50; }
-        h1 { margin-bottom: 25px; }
-        h2 { margin-top: 35px; margin-bottom: 20px; border-bottom: 2px solid #ecf0f1; padding-bottom: 10px; font-size: 1.8em; }
-        .nav-links { text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid #eee; }
-        .nav-links a, .nav-links button {
-            margin: 0 12px; text-decoration: none; color: #3498db; font-weight: 500;
-            padding: 8px 15px; border-radius: 5px; transition: background-color 0.3s, color 0.3s;
+        :root {
+            --sidebar-width: 264px;
+            --topbar-height: 70px;
+            --bg-app: #f4f7f6;
+            --bg-card: #ffffff;
+            --border-soft: #ecf0f1;
+            --border-mid: #e0e6e5;
+            --text-main: #2c3e50;
+            --text-body: #333333;
+            --text-muted: #7f8c8d;
+            --accent: #3498db;
+            --accent-soft: #eaf4fc;
+            --success: #28a745;
+            --warning: #f39c12;
+            --danger: #e74c3c;
         }
-        .nav-links a:hover, .nav-links button:hover { background-color: #3498db; color: white; }
-        .nav-links button { background: none; border: 1px solid #3498db; cursor: pointer; font-size: inherit; }
 
-        table { width: 100%; border-collapse: collapse; margin-bottom: 25px; font-size: 0.95em; }
-        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; vertical-align: middle; }
-        th { background-color: #e9ecef; font-weight: 600; }
-        tr:nth-child(even) { background-color: #f8f9fa; }
-        .actions {
-            display: flex; /* Горизонтальное размещение */
-            gap: 8px; /* Пространство между кнопками */
-            align-items: center; /* Выравнивание по вертикали */
-        }
-        .actions a, .actions button {
-            margin-right: 0; text-decoration: none; padding: 9px 12px;
-            border-radius: 4px; font-size: 0.9em; border: none; cursor: pointer;
-            transition: opacity 0.2s; margin-top: 7px;
-        }
-        .actions .edit-btn { background-color: #ffc107; color: white; }
-        .actions .edit-btn:hover { opacity: 0.8; }
-        .actions .delete-btn { background-color: #dc3545; color: white; }
-        .actions .delete-btn:hover { opacity: 0.8; }
+        * { box-sizing: border-box; }
 
-        .form-section { margin-bottom: 30px; padding: 25px; background-color: #fdfdfd; border: 1px solid #ecf0f1; border-radius: 5px; }
-        .form-section h3 { margin-top: 0; margin-bottom: 20px; color: #34495e; }
-        .form-group { margin-bottom: 18px; }
-        .form-group label { display: block; margin-bottom: 6px; font-weight: 500; color: #555; }
-        .form-group input[type="text"],
-        .form-group input[type="number"],
-        .form-group input[type="email"],
-        .form-group input[type="password"],
-        .form-group select {
+        html, body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-app);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            color: var(--text-body);
+            min-height: 100vh;
+        }
+
+        /* ============ Общий layout ============ */
+        .admin-layout {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* ============ Sidebar ============ */
+        .admin-sidebar {
+            width: var(--sidebar-width);
+            background-color: #ffffff;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            display: flex;
+            flex-direction: column;
+            z-index: 100;
+        }
+
+        .sidebar-brand {
+            height: var(--topbar-height);
+            display: flex;
+            align-items: center;
+            padding: 0 22px;
+            font-weight: 900;
+            font-size: 15px;
+            letter-spacing: 0.5px;
+            color: #4C3C34;
+            text-transform: uppercase;
+            border-bottom: 1px solid var(--border-soft);
+            flex-shrink: 0;
+        }
+
+        .sidebar-brand .brand-mark {
+            margin-right: 10px;
+            font-size: 18px;
+            color: #E91E63;
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            overflow-y: auto;
+            padding: 14px 10px 20px;
+            scrollbar-width: thin;
+            scrollbar-color: #ced4da #f8f9fa;
+        }
+
+        .sidebar-nav::-webkit-scrollbar { width: 6px; }
+        .sidebar-nav::-webkit-scrollbar-track { background: #f8f9fa; }
+        .sidebar-nav::-webkit-scrollbar-thumb {
+            background: #ced4da; border-radius: 3px;
+        }
+        .sidebar-nav::-webkit-scrollbar-thumb:hover { background: #adb5bd; }
+
+        .nav-group {
+            margin-bottom: 6px;
+        }
+
+        .nav-group-title {
+            padding: 14px 14px 6px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            color: #95a5a6;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            margin: 2px 0;
+            border-radius: 6px;
+            color: #4a5568;
+            font-size: 14px;
+            font-weight: 500;
+            text-decoration: none;
+            cursor: pointer;
+            transition: background-color 0.2s, color 0.2s;
+            border: none;
+            background: none;
             width: 100%;
-            padding: 10px; border: 1px solid #ced4da; border-radius: 4px;
-            box-sizing: border-box; font-size: 1em;
+            text-align: left;
+            font-family: inherit;
+        }
+
+        .nav-icon {
+            width: 22px;
+            text-align: center;
+            font-size: 15px;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+
+        .nav-item:hover {
+            background-color: var(--accent-soft);
+            color: var(--accent);
+        }
+
+        .nav-item.active {
+            background-color: var(--accent);
+            color: #ffffff;
+            font-weight: 600;
+        }
+
+        .nav-badge {
+            margin-left: auto;
+            background-color: #fdecea;
+            color: #c0392b;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 10px;
+            min-width: 22px;
+            text-align: center;
+        }
+
+        .nav-item.active .nav-badge {
+            background-color: rgba(255, 255, 255, 0.25);
+            color: #ffffff;
+        }
+
+        .sidebar-footer {
+            padding: 14px 16px;
+            border-top: 1px solid var(--border-soft);
+            flex-shrink: 0;
+        }
+
+        .logout-btn {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            border-radius: 6px;
+            background-color: transparent;
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s, color 0.2s;
+        }
+
+        .logout-btn:hover {
+            background-color: var(--accent);
+            color: #ffffff;
+        }
+
+        /* ============ Main area ============ */
+        .main-area {
+            flex: 1;
+            margin-left: var(--sidebar-width);
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .topbar {
+            height: var(--topbar-height);
+            background-color: #ffffff;
+            border-bottom: 1px solid var(--border-soft);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 32px;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .topbar-titles {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .topbar-service {
+            font-size: 12px;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            color: #95a5a6;
+        }
+
+        .topbar-section {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .topbar-profile {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .profile-avatar {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background-color: var(--accent);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 16px;
+            letter-spacing: 0.5px;
+            flex-shrink: 0;
+        }
+
+        .profile-meta {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.25;
+        }
+
+        .profile-meta-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .profile-meta-role {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        /* ============ Контент ============ */
+        .content {
+            padding: 32px 40px 60px;
+            max-width: 1400px;
+            width: 100%;
+        }
+
+        .page-section { display: none; }
+        .page-section.active { display: block; }
+
+        .page-header h2 {
+            margin: 0 0 6px;
+            font-size: 26px;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .page-header .greeting {
+            margin: 0;
+            font-size: 15px;
+            color: var(--text-muted);
+        }
+
+        .section-title-block {
+            margin: 36px 0 18px;
+        }
+
+        .section-title-block h3 {
+            margin: 0 0 4px;
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-main);
+            border-bottom: 2px solid var(--border-soft);
+            padding-bottom: 10px;
+        }
+
+        .section-title-block p {
+            margin: 8px 0 0;
+            font-size: 14px;
+            color: var(--text-muted);
+            max-width: 720px;
+        }
+
+        /* ============ Stat cards ============ */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+        }
+
+        @media (max-width: 1200px) {
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 640px) {
+            .stats-grid { grid-template-columns: 1fr; }
+        }
+
+        .stat-card {
+            background-color: var(--bg-card);
+            border-radius: 8px;
+            padding: 22px 22px 18px;
+            border: 1px solid var(--border-soft);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            display: flex;
+            flex-direction: column;
+            transition: box-shadow 0.2s, transform 0.2s;
+        }
+
+        .stat-card:hover {
+            box-shadow: 0 4px 16px rgba(52, 152, 219, 0.12);
+            transform: translateY(-2px);
+        }
+
+        .stat-card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+
+        .stat-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+        .stat-icon.blue   { background-color: #eaf4fc; }
+        .stat-icon.violet { background-color: #f0ecfa; }
+        .stat-icon.teal   { background-color: #e3f4f1; }
+        .stat-icon.amber  { background-color: #fdf3e0; }
+
+        .stat-label {
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        .stat-main-value {
+            font-size: 34px;
+            font-weight: 700;
+            color: var(--text-main);
+            line-height: 1;
+            letter-spacing: -0.5px;
+        }
+
+        .stat-main-label {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-top: 4px;
+            margin-bottom: 18px;
+        }
+
+        .stat-link {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            border-radius: 6px;
+            background-color: #f8fafc;
+            border: 1px solid var(--border-soft);
+            text-decoration: none;
+            color: var(--text-body);
+            transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+            margin-top: auto;
+        }
+
+        .stat-link:hover {
+            background-color: var(--accent-soft);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .stat-link-info {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.25;
+        }
+
+        .stat-link-value {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .stat-link-text {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .stat-link-arrow {
+            color: #bdc3c7;
+            font-size: 15px;
+            transition: transform 0.2s, color 0.2s;
+        }
+
+        .stat-link:hover .stat-link-arrow {
+            transform: translateX(2px);
+            color: var(--accent);
+        }
+
+        /* ============ Attention block ============ */
+        .attention-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .attention-item {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-soft);
+            border-left: 4px solid var(--accent);
+            border-radius: 8px;
+            padding: 18px 22px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            transition: box-shadow 0.2s;
+        }
+
+        .attention-item:hover {
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+        }
+
+        .attention-item.priority-high   { border-left-color: var(--danger); }
+        .attention-item.priority-medium { border-left-color: var(--warning); }
+        .attention-item.priority-low    { border-left-color: #d4ac0d; }
+
+        .attention-content {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            min-width: 0;
+        }
+
+        .attention-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .attention-item.priority-high .attention-dot   { background-color: var(--danger); }
+        .attention-item.priority-medium .attention-dot { background-color: var(--warning); }
+        .attention-item.priority-low .attention-dot    { background-color: #d4ac0d; }
+
+        .attention-text {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            min-width: 0;
+        }
+
+        .attention-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .attention-title .count {
+            color: var(--accent);
+            font-weight: 700;
+        }
+
+        .attention-desc {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .attention-action {
+            flex-shrink: 0;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 16px;
+            border-radius: 6px;
+            background-color: transparent;
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            font-size: 13px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: background-color 0.2s, color 0.2s;
+            white-space: nowrap;
+        }
+
+        .attention-action:hover {
+            background-color: var(--accent);
+            color: #fff;
+        }
+
+        @media (max-width: 720px) {
+            .attention-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+
+        /* ============ Import card ============ */
+        .import-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-soft);
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            padding: 22px 26px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 24px;
+            flex-wrap: wrap;
+        }
+
+        .import-info {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-width: 0;
+        }
+
+        .import-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            color: var(--text-body);
+        }
+
+        .import-row .row-icon {
+            width: 18px;
+            text-align: center;
+            font-size: 14px;
+            line-height: 1;
+        }
+
+        .import-row .label {
+            color: var(--text-muted);
+            margin-right: 4px;
+        }
+
+        .import-row .value {
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .import-row .value.pending {
+            color: var(--warning);
+        }
+
+        .import-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 11px 20px;
+            border-radius: 6px;
+            background-color: var(--accent);
+            color: #fff;
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: background-color 0.2s;
+            white-space: nowrap;
+        }
+
+        .import-btn:hover { background-color: #2980b9; }
+
+        /* ============ Notifications feed (супер-админ) ============ */
+        .notifications-feed {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            max-height: 480px;
+            overflow-y: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        .notifications-feed::-webkit-scrollbar { display: none; }
+
+        .notification-item {
+            padding: 14px 18px;
+            border-radius: 6px;
+            background-color: #fff;
+            border: 1px solid var(--border-soft);
+            border-left: 4px solid #bdc3c7;
+            margin-bottom: 10px;
+        }
+        .notification-item.type-MESSAGE         { border-left-color: #3498db; }
+        .notification-item.type-REVIEW_ADDED    { border-left-color: #9b59b6; }
+        .notification-item.type-MARKER_ADDED    { border-left-color: #27ae60; }
+        .notification-item.type-MARKER_UPDATED  { border-left-color: #f39c12; }
+        .notification-item.type-MARKER_DELETED  { border-left-color: #e74c3c; }
+
+        .notification-item .notification-text {
+            color: var(--text-body);
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        .notification-item .notification-time {
+            color: #95a5a6;
+            font-size: 12px;
+            margin-top: 6px;
+        }
+        .notifications-empty {
+            text-align: center;
+            color: #95a5a6;
+            padding: 32px 0;
+            font-size: 14px;
+        }
+
+        /* ============ Профиль ============ */
+        .profile-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-soft);
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            padding: 6px 26px;
+            max-width: 640px;
+        }
+
+        .profile-row {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 18px 0;
+            border-bottom: 1px solid #f0f2f5;
+        }
+        .profile-row:last-child { border-bottom: none; }
+
+        .profile-row-label {
+            width: 110px;
+            font-weight: 500;
+            color: var(--text-muted);
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+        .profile-row-value {
+            flex: 1;
+            color: var(--text-main);
+            font-size: 15px;
+        }
+        .profile-row-input {
+            flex: 1;
+            padding: 9px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            background-color: #eceff1;
+            font-size: 15px;
+            font-family: inherit;
+            color: var(--text-main);
+            outline: none;
+            transition: border-color 0.2s, background-color 0.2s;
+        }
+        .profile-row-input:focus {
+            border-color: var(--accent);
+            background-color: #fff;
+        }
+
+        .profile-edit-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: 1px solid var(--accent);
+            background-color: #fff;
+            color: var(--accent);
+            cursor: pointer;
+            font-size: 15px;
+            line-height: 1;
+            transition: background-color 0.2s, color 0.2s;
+            flex-shrink: 0;
+        }
+        .profile-edit-btn:hover {
+            background-color: var(--accent);
+            color: #fff;
+        }
+        .profile-edit-btn.confirm-mode {
+            border-color: var(--success);
+            color: var(--success);
+        }
+        .profile-edit-btn.confirm-mode:hover {
+            background-color: var(--success);
+            color: #fff;
+            border-color: var(--success);
+        }
+
+        .role-badge {
+            display: inline-block;
+            padding: 3px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .role-badge.super   { background-color: #fff3cd; color: #856404; }
+        .role-badge.regular { background-color: #e2e3e5; color: #383d41; }
+
+        .change-password-btn {
+            background-color: #6c757d;
+            color: #fff;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            font-family: inherit;
+            transition: background-color 0.2s;
+        }
+        .change-password-btn:hover {
+            background-color: #565e64;
+        }
+
+        /* ============ Модальное окно смены пароля ============ */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1050;
+            left: 0; top: 0;
+            width: 100%; height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        .modal-content {
+            background-color: #fff;
+            margin: 10% auto;
+            padding: 25px;
+            width: 90%;
+            max-width: 420px;
+            border-radius: 6px;
+            border: 1px solid #bbb;
+            position: relative;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        .close-btn {
+            position: absolute;
+            top: 10px; right: 20px;
+            font-size: 28px;
+            font-weight: bold;
+            color: #888;
+            cursor: pointer;
+            background: none;
+            border: none;
+            padding: 0;
+            line-height: 1;
+        }
+        .close-btn:hover { color: #333; }
+
+        .modal-content h3 {
+            margin: 0 0 22px;
+            font-size: 19px;
+            font-weight: 700;
+            color: var(--text-main);
+            text-align: center;
+        }
+
+        .form-group { margin-bottom: 18px; }
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #555;
+        }
+        .form-group input[type="password"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 15px;
+            font-family: inherit;
+            outline: none;
             transition: border-color 0.2s;
         }
-        .form-group input:focus, .form-group select:focus { border-color: #3498db; outline: none; box-shadow: 0 0 0 0.1rem rgba(52, 152, 219, 0.25); }
-        .btn { padding: 10px 18px; border-radius: 4px; border: none; cursor: pointer; font-size: 1em; font-weight: 500; transition: background-color 0.3s; }
-        .btn-primary { background-color: #28a745; color: white; }
+        .form-group input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 0.1rem rgba(52, 152, 219, 0.25);
+        }
+
+        .btn { padding: 10px 18px; border-radius: 4px; border: none; cursor: pointer; font-size: 1em; font-weight: 500; font-family: inherit; transition: background-color 0.2s; }
+        .btn-primary { background-color: var(--success); color: #fff; width: 100%; }
         .btn-primary:hover { background-color: #218838; }
-        .btn-submit-edit { background-color: #007bff; color: white; }
-        .btn-submit-edit:hover { background-color: #0056b3; }
 
-        .validation-error { color: #e74c3c; font-size: 0.85em; margin-top: 4px; }
-
-        .modal { display: none; position: fixed; z-index: 1050; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5); }
-        .modal-content { background-color: #fff; margin: 8% auto; padding: 25px; border: 1px solid #bbb; width: 90%; max-width: 650px; border-radius: 6px; position: relative; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
-        .close-btn { color: #888; position: absolute; top: 10px; right: 20px; font-size: 28px; font-weight: bold; }
-        .close-btn:hover, .close-btn:focus { color: #333; text-decoration: none; cursor: pointer; }
-
-        .map-container {
-            height: 300px;
-            width: 100%;
-            margin-bottom: 20px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-
-        #add-map-preview, #edit-map-preview {
-            height: 100%;
-            width: 100%;
-        }
-
-        .map-controls {
-            margin-top: 10px;
-            display: flex;
-            gap: 10px;
-        }
-
-        .map-controls button {
-            background: none; border: 1px solid #3498db; cursor: pointer; font-size: inherit;
-            margin: 0 12px; text-decoration: none; color: #3498db; font-weight: 500;
-            padding: 5px 10px; border-radius: 5px; transition: background-color 0.3s, color 0.3s;
-        }
-
-        .map-controls button:hover {
-            background-color: #3498db; color: white;
-        }
-
-        .table-actions {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-        .search-and-add {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-        .search-input {
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            width: 300px;
-        }
-        .add-btn {
-            background-color: #34a853;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            font-size: 1em;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-        .add-btn:hover {
-            background-color: #2d9249;
-        }
-
-        /* Новые стили для уведомлений */
+        /* ============ Уведомления (toast) ============ */
         .notification {
             position: fixed;
             top: 20px;
@@ -137,663 +821,552 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
+            gap: 12px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            z-index: 1000;
+            z-index: 2000;
             max-width: 80%;
+            font-size: 14px;
             animation: fadeIn 0.3s ease-in-out;
         }
-
-        .success-notification {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-
-        .error-notification {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-
+        .success-notification { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error-notification   { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
         .notification-close {
-            margin-left: 15px;
             cursor: pointer;
             font-weight: bold;
+            background: none;
+            border: none;
+            color: inherit;
+            font-size: 18px;
+            padding: 0 4px;
         }
-
         @keyframes fadeIn {
             from { opacity: 0; transform: translateX(-50%) translateY(-20px); }
-            to { opacity: 1; transform: translateX(-50%) translateY(0); }
-        }
-
-        .report-btn {
-            background-color: #4a90e2; /* Голубой цвет */
-            color: white;
-            border: none;
-            padding: 10px 16px;
-            font-size: 14px;
-            font-weight: 500;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-            margin-right: 10px;
-        }
-
-        .report-btn:hover {
-            background-color: #357ABD;
+            to   { opacity: 1; transform: translateX(-50%) translateY(0); }
         }
     </style>
 </head>
 <body>
-<div class="admin-container">
-    <h1>Административная панель</h1>
-    <div class="nav-links">
-        <a th:href="@{/}">Перейти на карту</a>
-        <a th:href="@{/admin/chats}">Входящие сообщения</a>
-        <form th:action="@{/logout}" method="post" style="display: inline;">
-            <button type="submit">Выйти из системы</button>
-        </form>
-    </div>
 
-    <!-- Уведомления будут добавляться сюда динамически -->
-    <div id="notifications-container"></div>
+<div class="admin-layout">
 
-    <h2 id="manage-markers-heading">Управление маркерами</h2>
-
-    <div class="table-actions">
-        <div class="search-and-add">
-            <input type="text" id="marker-search" class="search-input" placeholder="Поиск по названию...">
-            <button class="add-btn" onclick="openAddModal()">+ Добавить маркер</button>
+    <aside class="admin-sidebar">
+        <div class="sidebar-brand">
+            <span class="brand-mark"></span>
+            Социальный<br>навигатор
         </div>
-        <button class="report-btn" onclick="generateReport()">Сформировать отчет</button>
-    </div>
 
-    <div style="overflow-x:auto;">
-        <table id="markers-table">
-            <thead>
-            <tr>
-                <th>Название</th>
-                <th>Адрес</th>
-                <th>Категория</th>
-                <th>Возраст</th>
-                <th>Координаты (Ш, Д)</th>
-                <th>Действия</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr th:if="${#lists.isEmpty(markers)}">
-                <td colspan="7" style="text-align:center;">Маркеры пока не добавлены</td>
-            </tr>
-            <tr th:each="marker : ${markers}" class="marker-row">
-                <td class="marker-name" th:text="${marker.name}"></td>
-                <td th:text="${marker.address ?: '-'}"></td>
-                <td th:text="${marker.diagnosis ?: '-'}"></td>
-                <td th:text="${marker.age ?: '-'}"></td>
-                <td th:text="${marker.latitude + ', ' + marker.longitude}"></td>
-                <td class="actions">
-                    <button th:attr="onclick=|openEditModal(${marker.id})|" class="edit-btn">✎</button>
-                    <form th:action="@{/admin/markers/delete}" method="post" style="display: inline;">
-                        <input type="hidden" name="id" th:value="${marker.id}"/>
-                        <button type="submit" class="delete-btn" onclick="return confirm('Вы уверены, что хотите удалить этот маркер?');">✕</button>
-                    </form>
-                </td>
-            </tr>
-            </tbody>
-        </table>
-    </div>
+        <nav class="sidebar-nav">
 
-    <!-- Модальное окно для добавления маркера -->
-    <div id="addMarkerModal" class="modal">
-        <div class="modal-content">
-            <span class="close-btn" onclick="closeAddModal()">×</span>
-            <h3>Добавить новый маркер</h3>
-            <form id="addMarkerForm" th:action="@{/admin/markers/add}" th:object="${newMarker}" method="post">
-                <div th:if="${#fields.hasErrors('newMarker.*')}" class="notification error-notification">
-                    <span>Пожалуйста, исправьте ошибки в форме:</span>
-                    <ul>
-                        <li th:each="err : ${#fields.errors('newMarker.*')}" th:text="${err}"></li>
-                    </ul>
-                    <span class="notification-close" onclick="this.parentElement.style.display='none'">×</span>
-                </div>
+            <a href="#" class="nav-item active" data-section="home" data-title="Главная">
+                <span class="nav-icon">◉</span>
+                <span>Главная</span>
+            </a>
 
-                <div class="form-group">
-                    <label for="add-name">Название организации/услуги:</label>
-                    <input type="text" id="add-name" th:field="*{name}" required>
-                    <div th:if="${#fields.hasErrors('name')}" th:errors="*{name}" class="validation-error"></div>
-                </div>
+            <div class="nav-group">
+                <div class="nav-group-title">Пользователи</div>
+                <a href="/admin/users" class="nav-item">
+                    <span class="nav-icon">◉</span>
+                    <span>Все пользователи</span>
+                </a>
+                <a href="/admin/users/verification" class="nav-item">
+                    <span class="nav-icon">◉</span>
+                    <span>Верификация</span>
+                    <span class="nav-badge">17</span>
+                </a>
+            </div>
 
-                <div class="form-group">
-                    <label>Выберите местоположение на карте:</label>
-                    <div class="map-container">
-                        <div id="add-map-preview"></div>
-                    </div>
-                    <div class="map-controls">
-                        <button type="button" id="add-search-by-address">Найти по адресу</button>
-                    </div>
-                </div>
+            <div class="nav-group">
+                <div class="nav-group-title">Организации</div>
+                <a href="/admin/organizations" class="nav-item">
+                    <span class="nav-icon">◉</span>
+                    <span>Реестр организаций</span>
+                </a>
+                <a href="/admin/organizations/moderation" class="nav-item">
+                    <span class="nav-icon">◉</span>
+                    <span>Модерация</span>
+                    <span class="nav-badge">5</span>
+                </a>
+                <a href="/admin/import" class="nav-item">
+                    <span class="nav-icon">◉</span>
+                    <span>Импорт данных</span>
+                </a>
+            </div>
 
-                <div class="form-group">
-                    <label for="add-address">Адрес:</label>
-                    <input type="text" id="add-address" th:field="*{address}">
-                    <div th:if="${#fields.hasErrors('address')}" th:errors="*{address}" class="validation-error"></div>
-                </div>
-                <div class="form-group">
-                    <label for="add-latitude">Широта:</label>
-                    <input type="number" step="any" id="add-latitude" th:field="*{latitude}" required>
-                    <div th:if="${#fields.hasErrors('latitude')}" th:errors="*{latitude}" class="validation-error"></div>
-                </div>
-                <div class="form-group">
-                    <label for="add-longitude">Долгота:</label>
-                    <input type="number" step="any" id="add-longitude" th:field="*{longitude}" required>
-                    <div th:if="${#fields.hasErrors('longitude')}" th:errors="*{longitude}" class="validation-error"></div>
-                </div>
-                <div class="form-group">
-                    <label for="add-diagnosis">Категория услуги:</label>
-                    <select id="add-diagnosis" th:field="*{diagnosis}">
-                        <option value="">-- Не выбрано --</option>
-                        <option value="educational">Образовательные</option>
-                        <option value="social">Социальные</option>
-                        <option value="medical">Медицинские</option>
-                        <option value="legal">Юридические</option>
-                        <option value="psychological">Психологические</option>
-                        <option value="commercial">Коммерческие</option>
-                    </select>
-                    <div th:if="${#fields.hasErrors('diagnosis')}" th:errors="*{diagnosis}" class="validation-error"></div>
-                </div>
-                <div class="form-group">
-                    <label for="add-age">Возрастная категория:</label>
-                    <select id="add-age" th:field="*{age}">
-                        <option value="">-- Не выбрано --</option>
-                        <option value="0-3">0-3 года</option>
-                        <option value="4-6">4-6 лет</option>
-                        <option value="7-12">7-12 лет</option>
-                        <option value="13-17">13-17 лет</option>
-                        <option value="18-23">18-23 года</option>
-                        <option value="24+">24 года и старше</option>
-                    </select>
-                    <div th:if="${#fields.hasErrors('age')}" th:errors="*{age}" class="validation-error"></div>
-                </div>
-                <div class="form-group">
-                    <label for="add-photo">Загрузите фото:</label>
-                    <input type="file" id="add-photo" name="photo" accept="image/*"/>
-                </div>
-                <button type="submit" class="btn btn-primary">Добавить маркер</button>
+            <div class="nav-group">
+                <div class="nav-group-title">Специалисты</div>
+                <a href="/admin/specialists" class="nav-item">
+                    <span class="nav-icon">◉</span>
+                    <span>Реестр специалистов</span>
+                </a>
+                <a href="/admin/specialists/requests" class="nav-item">
+                    <span class="nav-icon">◉</span>
+                    <span>Заявки</span>
+                    <span class="nav-badge">8</span>
+                </a>
+            </div>
+
+            <div class="nav-group">
+                <div class="nav-group-title">Отзывы</div>
+                <a href="/admin/reviews/moderation" class="nav-item">
+                    <span class="nav-icon">◉</span>
+                    <span>Модерация отзывов</span>
+                    <span class="nav-badge">6</span>
+                </a>
+            </div>
+
+            <div class="nav-group">
+                <div class="nav-group-title">Аккаунт</div>
+                <a href="#" class="nav-item" data-section="profile" data-title="Профиль">
+                    <span class="nav-icon">◉</span>
+                    <span>Профиль</span>
+                </a>
+            </div>
+
+        </nav>
+
+        <div class="sidebar-footer">
+            <form th:action="@{/logout}" method="post">
+                <button type="submit" class="logout-btn">
+                    <span class="nav-icon"></span>
+                    <span>Выйти из аккаунта</span>
+                </button>
             </form>
         </div>
-    </div>
+    </aside>
 
-    <!-- Модальное окно для редактирования маркера -->
-    <div id="editMarkerModal" class="modal">
-        <div class="modal-content">
-            <span class="close-btn" onclick="closeEditModal()">×</span>
-            <h3>Редактировать маркер</h3>
-            <form id="editMarkerForm" th:action="@{/admin/markers/update}" th:object="${editMarker}" method="post">
-                <input type="hidden" th:field="*{id}" id="edit-id"/>
+    <div class="main-area">
 
-                <div th:if="${#fields.hasErrors('editMarker.*')}" class="notification error-notification">
-                    <span>Пожалуйста, исправьте ошибки в форме:</span>
-                    <ul>
-                        <li th:each="err : ${#fields.errors('editMarker.*')}" th:text="${err}"></li>
+        <header class="topbar">
+            <div class="topbar-titles">
+            </div>
+            <div class="topbar-profile">
+                <div class="profile-avatar">
+                    А
+                </div>
+                <div class="profile-meta">
+                    <span class="profile-meta-name"
+                          th:text="${adminUser != null ? adminUser.name : 'Администратор'}">Администратор</span>
+                    <span class="profile-meta-role"
+                          th:text="${isSuperAdmin != null and isSuperAdmin ? 'Супер-администратор' : 'Администратор'}">Администратор</span>
+                </div>
+            </div>
+        </header>
+
+        <main class="content">
+
+            <section id="section-home" class="page-section active">
+
+                <div class="page-header">
+                    <p class="greeting">
+                        Добро пожаловать,
+                        <span th:text="${adminUser != null ? adminUser.name : 'Администратор'}">Администратор</span>
+                    </p>
+                </div>
+
+                <div class="section-title-block">
+                    <p>Актуальная информация о пользователях, организациях, специалистах и данных, требующих проверки</p>
+                </div>
+
+                <div class="stats-grid">
+
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <div class="stat-icon blue">п</div>
+                            <span class="stat-label">Пользователи</span>
+                        </div>
+                        <div class="stat-main-value">1 284</div>
+                        <div class="stat-main-label">Пользователей</div>
+
+                        <a href="/admin/users/verification?filter=pending" class="stat-link">
+                            <div class="stat-link-info">
+                                <span class="stat-link-value">17</span>
+                                <span class="stat-link-text">Ожидают верификации</span>
+                            </div>
+                            <span class="stat-link-arrow"></span>
+                        </a>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <div class="stat-icon violet">о</div>
+                            <span class="stat-label">Организации</span>
+                        </div>
+                        <div class="stat-main-value">86</div>
+                        <div class="stat-main-label">Организаций</div>
+
+                        <a href="/admin/organizations/moderation?filter=pending" class="stat-link">
+                            <div class="stat-link-info">
+                                <span class="stat-link-value">5</span>
+                                <span class="stat-link-text">На модерации</span>
+                            </div>
+                            <span class="stat-link-arrow"></span>
+                        </a>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <div class="stat-icon teal">с</div>
+                            <span class="stat-label">Специалисты</span>
+                        </div>
+                        <div class="stat-main-value">34</div>
+                        <div class="stat-main-label">Специалиста</div>
+
+                        <a href="/admin/specialists/requests?filter=new" class="stat-link">
+                            <div class="stat-link-info">
+                                <span class="stat-link-value">8</span>
+                                <span class="stat-link-text">Новых заявок</span>
+                            </div>
+                            <span class="stat-link-arrow"></span>
+                        </a>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <div class="stat-icon amber">о</div>
+                            <span class="stat-label">Отзывы</span>
+                        </div>
+                        <div class="stat-main-value">642</div>
+                        <div class="stat-main-label">Отзыва</div>
+
+                        <a href="/admin/reviews/moderation?filter=pending" class="stat-link">
+                            <div class="stat-link-info">
+                                <span class="stat-link-value">6</span>
+                                <span class="stat-link-text">На проверке</span>
+                            </div>
+                            <span class="stat-link-arrow"></span>
+                        </a>
+                    </div>
+
+                </div>
+                <div class="section-title-block">
+                    <h3>Требуют внимания</h3>
+                </div>
+
+                <div class="attention-list">
+                    <div class="attention-item priority-high">
+                        <div class="attention-content">
+                            <span class="attention-dot"></span>
+                            <div class="attention-text">
+                                <span class="attention-title">
+                                    <span class="count">17</span> пользователей ожидают верификации
+                                </span>
+                                <span class="attention-desc">Проверьте данные зарегистрированных пользователей и подтвердите их аккаунты.</span>
+                            </div>
+                        </div>
+                        <a href="/admin/users/verification?filter=pending" class="attention-action">
+                            Перейти к верификации
+                        </a>
+                    </div>
+                    <div class="attention-item priority-medium">
+                        <div class="attention-content">
+                            <span class="attention-dot"></span>
+                            <div class="attention-text">
+                                <span class="attention-title">
+                                    <span class="count">5</span> организаций ожидают модерации
+                                </span>
+                                <span class="attention-desc">Необходимо проверить предоставленную информацию перед публикацией.</span>
+                            </div>
+                        </div>
+                        <a href="/admin/organizations/moderation?filter=pending" class="attention-action">
+                            Перейти к модерации
+                        </a>
+                    </div>
+                    <div class="attention-item priority-medium">
+                        <div class="attention-content">
+                            <span class="attention-dot"></span>
+                            <div class="attention-text">
+                                <span class="attention-title">
+                                    <span class="count">8</span> заявок специалистов ожидают проверки
+                                </span>
+                                <span class="attention-desc">Проверьте анкеты и подтверждающие документы специалистов.</span>
+                            </div>
+                        </div>
+                        <a href="/admin/specialists/requests?filter=new" class="attention-action">
+                            Перейти к заявкам
+                        </a>
+                    </div>
+                    <div class="attention-item priority-low">
+                        <div class="attention-content">
+                            <span class="attention-dot"></span>
+                            <div class="attention-text">
+                                <span class="attention-title">
+                                    <span class="count">6</span> отзывов ожидают проверки
+                                </span>
+                                <span class="attention-desc">Проверьте новые отзывы перед публикацией.</span>
+                            </div>
+                        </div>
+                        <a href="/admin/reviews/moderation?filter=pending" class="attention-action">
+                            Перейти к отзывам
+                        </a>
+                    </div>
+
+                </div>
+
+                <div th:if="${isSuperAdmin}">
+                    <div class="section-title-block">
+                        <h3>Лента событий</h3>
+                        <p>Последние действия администраторов в системе.</p>
+                    </div>
+
+                    <ul class="notifications-feed"
+                        th:if="${notifications != null and not #lists.isEmpty(notifications)}">
+                        <li class="notification-item"
+                            th:each="n : ${notifications}"
+                            th:classappend="'type-' + ${n.type}">
+                            <div class="notification-text" th:text="${n.text}"></div>
+                            <div class="notification-time"
+                                 th:text="${#temporals.format(n.createdAt, 'dd.MM.yyyy HH:mm')}"></div>
+                        </li>
                     </ul>
-                    <span class="notification-close" onclick="this.parentElement.style.display='none'">×</span>
-                </div>
-
-                <div class="form-group">
-                    <label for="edit-name">Название:</label>
-                    <input type="text" th:field="*{name}" id="edit-name" required/>
-                    <div th:if="${#fields.hasErrors('name')}" th:errors="*{name}" class="validation-error"></div>
-                </div>
-
-                <div class="form-group">
-                    <label>Местоположение на карте:</label>
-                    <div class="map-container">
-                        <div id="edit-map-preview"></div>
-                    </div>
-                    <div class="map-controls">
-                        <button type="button" id="edit-search-by-address">Найти по адресу</button>
+                    <div class="notifications-empty"
+                         th:if="${notifications == null or #lists.isEmpty(notifications)}">
+                        Пока нет новых событий
                     </div>
                 </div>
 
-                <div class="form-group">
-                    <label for="edit-address">Адрес:</label>
-                    <input type="text" th:field="*{address}" id="edit-address"/>
-                    <div th:if="${#fields.hasErrors('address')}" th:errors="*{address}" class="validation-error"></div>
+            </section>
+
+            <section id="section-profile" class="page-section">
+
+                <div class="page-header">
+                    <h2>Профиль</h2>
+                    <p class="greeting">Личные данные вашего аккаунта администратора.</p>
                 </div>
-                <div class="form-group">
-                    <label for="edit-latitude">Широта:</label>
-                    <input type="number" step="any" th:field="*{latitude}" id="edit-latitude" required/>
-                    <div th:if="${#fields.hasErrors('latitude')}" th:errors="*{latitude}" class="validation-error"></div>
+
+                <div class="section-title-block">
+                    <h3>Личные данные</h3>
                 </div>
-                <div class="form-group">
-                    <label for="edit-longitude">Долгота:</label>
-                    <input type="number" step="any" th:field="*{longitude}" id="edit-longitude" required/>
-                    <div th:if="${#fields.hasErrors('longitude')}" th:errors="*{longitude}" class="validation-error"></div>
+
+                <div class="profile-card">
+                    <div class="profile-row">
+                        <span class="profile-row-label">ФИО:</span>
+                        <span class="profile-row-value"
+                              id="profile-name-value"
+                              th:text="${adminUser != null ? adminUser.name : 'Администратор'}">Администратор</span>
+                        <input type="text" class="profile-row-input"
+                               id="profile-name-input"
+                               style="display:none;"
+                               th:value="${adminUser != null ? adminUser.name : ''}">
+                        <button type="button" class="profile-edit-btn"
+                                id="profile-name-edit-btn"
+                                onclick="toggleProfileEdit('name')"
+                                title="Редактировать">✎</button>
+                    </div>
+
+                    <div class="profile-row">
+                        <span class="profile-row-label">Email:</span>
+                        <span class="profile-row-value"
+                              id="profile-email-value"
+                              th:text="${adminUser != null ? adminUser.email : 'admin@example.com'}">admin@example.com</span>
+                        <input type="email" class="profile-row-input"
+                               id="profile-email-input"
+                               style="display:none;"
+                               th:value="${adminUser != null ? adminUser.email : ''}">
+                        <button type="button" class="profile-edit-btn"
+                                id="profile-email-edit-btn"
+                                onclick="toggleProfileEdit('email')"
+                                title="Редактировать">✎</button>
+                    </div>
+
+                    <div class="profile-row">
+                        <span class="profile-row-label">Телефон:</span>
+                        <span class="profile-row-value">—</span>
+                    </div>
+
+                    <div class="profile-row">
+                        <span class="profile-row-label">Роль:</span>
+                        <span>
+                            <span class="role-badge super" th:if="${isSuperAdmin}">Супер-администратор</span>
+                            <span class="role-badge regular" th:unless="${isSuperAdmin}">Администратор</span>
+                        </span>
+                    </div>
+
+                    <div class="profile-row">
+                        <button type="button" class="change-password-btn" onclick="openChangePasswordModal()">
+                            Сменить пароль
+                        </button>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="edit-diagnosis">Категория услуги:</label>
-                    <select th:field="*{diagnosis}" id="edit-diagnosis">
-                        <option value="">-- Не выбрано --</option>
-                        <option value="educational">Образовательные</option>
-                        <option value="social">Социальные</option>
-                        <option value="medical">Медицинские</option>
-                        <option value="legal">Юридические</option>
-                        <option value="psychological">Психологические</option>
-                        <option value="commercial">Коммерческие</option>
-                    </select>
-                    <div th:if="${#fields.hasErrors('diagnosis')}" th:errors="*{diagnosis}" class="validation-error"></div>
-                </div>
-                <div class="form-group">
-                    <label for="edit-age">Возрастная категория:</label>
-                    <select th:field="*{age}" id="edit-age">
-                        <option value="">-- Не выбрано --</option>
-                        <option value="0-3">0-3 года</option>
-                        <option value="4-6">4-6 лет</option>
-                        <option value="7-12">7-12 лет</option>
-                        <option value="13-17">13-17 лет</option>
-                        <option value="18-23">18-23 года</option>
-                        <option value="24+">24 года и старше</option>
-                    </select>
-                    <div th:if="${#fields.hasErrors('age')}" th:errors="*{age}" class="validation-error"></div>
-                </div>
-                <div class="form-group">
-                    <label for="edit-phone">Телефон:</label>
-                    <input type="text" th:field="*{phone}" id="edit-phone" />
-                    <div th:if="${#fields.hasErrors('phone')}" th:errors="*{phone}" class="validation-error"></div>
-                </div>
-                <div class="form-group">
-                    <label for="edit-email">Почта:</label>
-                    <input type="email" th:field="*{email}" id="edit-email" />
-                    <div th:if="${#fields.hasErrors('email')}" th:errors="*{email}" class="validation-error"></div>
-                </div>
-                <div class="form-group">
-                    <label for="edit-photo">Загрузите новое фото:</label>
-                    <input type="file" id="edit-photo" name="photo" accept="image/*"/>
-                </div>
-                <button type="submit" class="btn btn-submit-edit">Сохранить изменения</button>
-            </form>
-        </div>
+
+            </section>
+
+        </main>
     </div>
+</div>
 
-    <h2 id="add-admin-heading">Управление администраторами</h2>
-    <div class="form-section" id="add-admin-form-section">
-        <h3>Добавить нового администратора</h3>
-        <form th:action="@{/admin/add-admin}" method="post">
+<div id="changePasswordModal" class="modal">
+    <div class="modal-content">
+        <button class="close-btn" onclick="closeChangePasswordModal()">×</button>
+        <h3>Смена пароля</h3>
+        <form id="changePasswordForm">
             <div class="form-group">
-                <label for="admin-name">Имя администратора:</label>
-                <input type="text" id="admin-name" name="name" required>
+                <label for="new-password-input">Новый пароль (минимум 8 символов):</label>
+                <input type="password" id="new-password-input" required minlength="8">
             </div>
             <div class="form-group">
-                <label for="admin-email">Email администратора:</label>
-                <input type="email" id="admin-email" name="email" required>
+                <label for="confirm-password-input">Подтвердите пароль:</label>
+                <input type="password" id="confirm-password-input" required minlength="8">
             </div>
-            <div class="form-group">
-                <label for="admin-password">Пароль (минимум 8 символов):</label>
-                <input type="password" id="admin-password" name="password" required minlength="8">
-            </div>
-            <div class="form-group">
-                <label for="admin-confirm-password">Подтвердите пароль:</label>
-                <input type="password" id="admin-confirm-password" name="confirmPassword" required>
-            </div>
-            <button type="submit" class="btn btn-primary">Добавить администратора</button>
+            <button type="submit" class="btn btn-primary">Сохранить новый пароль</button>
         </form>
     </div>
 </div>
 
 <script th:inline="javascript">
     /*<![CDATA[*/
-    // Глобальные переменные для карт и маркеров
-    let map, editMap;
-    let marker, editMarker;
-
-    document.addEventListener('DOMContentLoaded', function () {
-        // Инициализация карт
-        ymaps.ready(() => {
-            initAddMap();
-            initEditMap();
-        });
-
-        // Обработчики для формы добавления
-        document.getElementById('add-search-by-address').addEventListener('click', () =>
-            searchByAddress('add-address', 'add-map-preview', marker)
-        );
-
-        // Обработчики для формы редактирования
-        document.getElementById('edit-search-by-address').addEventListener('click', () =>
-            searchByAddress('edit-address', 'edit-map-preview', editMarker)
-        );
-
-        // Обработка формы добавления маркера
-        const addForm = document.getElementById('addMarkerForm');
-        if (addForm) {
-            addForm.addEventListener('submit', function (e) {
-                e.preventDefault();
-
-                const formData = new FormData(addForm);
-                const photoInput = document.getElementById('add-photo');
-                const file = photoInput.files[0];
-
-                if (file) {
-                    const fileData = new FormData();
-                    fileData.append("file", file); // ← имя должно совпадать с @RequestParam("file")
-
-                    fetch('/api/upload/photo', {
-                        method: 'POST',
-                        body: fileData,
-                        credentials: 'include'
-                    })
-                    .then(response => {
-                        if (!response.ok) throw new Error("Ошибка загрузки фото");
-                        return response.text(); // или response.json(), если сервер возвращает JSON
-                    })
-                    .then(fileUrl => {
-                        formData.set("imageUrl", fileUrl); // Сохраняем URL
-                        return fetch('/admin/markers/add', {
-                            method: 'POST',
-                            body: formData
-                        });
-                    })
-                    .then(() => window.location.reload())
-                    .catch(error => {
-                        console.error('Ошибка:', error);
-                        alert('Ошибка при добавлении маркера');
-                    });
-                } else {
-                    // Если фото не выбрано — отправляем без imageUrl
-                    fetch('/admin/markers/add', {
-                        method: 'POST',
-                        body: formData
-                    })
-                    .then(() => window.location.reload())
-                    .catch(error => {
-                        console.error('Ошибка:', error);
-                        alert('Ошибка при добавлении маркера');
-                    });
-                }
-            });
-        }
-
-        // Обработка формы редактирования маркера
-        const editForm = document.getElementById('editMarkerForm');
-        if (editForm) {
-            editForm.addEventListener('submit', function (e) {
-                e.preventDefault();
-
-                const formData = new FormData(editForm);
-                const photoInput = document.getElementById('edit-photo');
-                const file = photoInput.files[0];
-
-                if (file) {
-                    const fileData = new FormData();
-                    fileData.append("file", file);
-
-                    fetch('/api/upload/photo', {
-                        method: 'POST',
-                        body: fileData,
-                        credentials: 'include'
-                    })
-                    .then(response => {
-                        if (!response.ok) throw new Error("Ошибка загрузки фото");
-                        return response.text();
-                    })
-                    .then(fileUrl => {
-                        formData.set("imageUrl", fileUrl);
-                        return fetch('/admin/markers/update', {
-                            method: 'POST',
-                            body: formData
-                        });
-                    })
-                    .then(() => window.location.reload())
-                    .catch(error => {
-                        console.error('Ошибка:', error);
-                        alert('Ошибка при обновлении маркера');
-                    });
-                } else {
-                    fetch('/admin/markers/update', {
-                        method: 'POST',
-                        body: formData
-                    })
-                    .then(() => window.location.reload())
-                    .catch(error => {
-                        console.error('Ошибка:', error);
-                        alert('Ошибка при обновлении маркера');
-                    });
-                }
-            });
-        }
-    });
-
-    // === Функции работы с картой ===
-
-    function initAddMap() {
-        map = new ymaps.Map("add-map-preview", {
-            center: [46.3494, 48.0492],
-            zoom: 12
-        });
-
-        marker = new ymaps.Placemark(map.getCenter(), {}, {
-            draggable: false // Отключаем перетаскивание
-        });
-
-        map.geoObjects.add(marker);
-
-        // Добавляем обработчик клика по карте
-        map.events.add('click', function (e) {
-            const coords = e.get('coords');
-            marker.geometry.setCoordinates(coords);
-
-            // Обратное геокодирование для получения адреса
-            reverseGeocode(coords, 'add-address', 'add-latitude', 'add-longitude');
-        });
-    }
-
-    function initEditMap() {
-        editMap = new ymaps.Map("edit-map-preview", {
-            center: [46.3494, 48.0492],
-            zoom: 12
-        });
-
-        editMarker = new ymaps.Placemark(editMap.getCenter(), {}, {
-            draggable: false
-        });
-
-        editMap.geoObjects.add(editMarker);
-
-        // Добавляем обработчик клика по карте
-        editMap.events.add('click', function (e) {
-            const coords = e.get('coords');
-            editMarker.geometry.setCoordinates(coords);
-
-            // Обратное геокодирование для получения адреса
-            reverseGeocode(coords, 'edit-address', 'edit-latitude', 'edit-longitude');
-        });
-    }
-
-    function searchByAddress(addressId, mapId, markerObj) {
-        const address = document.getElementById(addressId).value;
-        if (!address) {
-            showNotification('Введите адрес для поиска', 'error');
-            return;
-        }
-
-        ymaps.geocode(address).then(function (res) {
-            const firstGeoObject = res.geoObjects.get(0);
-            if (firstGeoObject) {
-                const coords = firstGeoObject.geometry.getCoordinates();
-                markerObj.geometry.setCoordinates(coords);
-
-                const currentMap = mapId === 'add-map-preview' ? map : editMap;
-                currentMap.setCenter(coords, 15);
-
-                const latId = mapId === 'add-map-preview' ? 'add-latitude' : 'edit-latitude';
-                const lonId = mapId === 'add-map-preview' ? 'add-longitude' : 'edit-longitude';
-                const addrId = mapId === 'add-map-preview' ? 'add-address' : 'edit-address';
-
-                // Сохраняем координаты
-                document.getElementById(latId).value = coords[0].toFixed(6);
-                document.getElementById(lonId).value = coords[1].toFixed(6);
-
-                // Получаем полный адрес и записываем его в поле "адрес"
-                const fullAddress = firstGeoObject.getAddressLine(); // Полный адрес
-                document.getElementById(addrId).value = fullAddress;
-
-            } else {
-                showNotification('Адрес не найден', 'error');
-            }
-        }).catch(err => {
-            console.error('Ошибка геокодирования:', err);
-            showNotification('Ошибка поиска по адресу', 'error');
-        });
-    }
-
-    function reverseGeocode(coords, addressFieldId, latitudeFieldId, longitudeFieldId) {
-        ymaps.geocode(coords, { kind: 'house' }).then(function (res) {
-            const firstGeoObject = res.geoObjects.get(0);
-            if (firstGeoObject) {
-                const fullAddress = firstGeoObject.getAddressLine();
-                document.getElementById(addressFieldId).value = fullAddress;
-            }
-            document.getElementById(latitudeFieldId).value = coords[0].toFixed(6);
-            document.getElementById(longitudeFieldId).value = coords[1].toFixed(6);
-        }).catch(err => {
-            console.error('Ошибка обратного геокодирования:', err);
-            document.getElementById(latitudeFieldId).value = coords[0].toFixed(6);
-            document.getElementById(longitudeFieldId).value = coords[1].toFixed(6);
-            showNotification('Не удалось определить адрес по координатам', 'info');
-        });
-    }
-
-    // === Работа с модальными окнами ===
-
-    function openAddModal() {
-        const addModal = document.getElementById('addMarkerModal');
-        if (addModal) addModal.style.display = 'block';
-    }
-
-    function closeAddModal() {
-        const addModal = document.getElementById('addMarkerModal');
-        if (addModal) addModal.style.display = 'none';
-    }
-
-    function openEditModal(markerId) {
-        const editModal = document.getElementById('editMarkerModal');
-        if (!editModal) return;
-
-        fetch(`/admin/markers/api/${markerId}`)
-            .then(response => {
-                if (!response.ok) throw new Error('Не удалось загрузить данные маркера');
-                return response.json();
-            })
-            .then(marker => {
-                document.querySelector('#edit-id').value = marker.id;
-                document.querySelector('#edit-name').value = marker.name || '';
-                document.querySelector('#edit-address').value = marker.address || '';
-                document.querySelector('#edit-latitude').value = marker.latitude || '';
-                document.querySelector('#edit-longitude').value = marker.longitude || '';
-                document.querySelector('#edit-diagnosis').value = marker.diagnosis || '';
-                document.querySelector('#edit-age').value = marker.age || '';
-                document.querySelector('#edit-phone').value = marker.phone || '';
-                document.querySelector('#edit-email').value = marker.email || '';
-
-                if (marker.latitude && marker.longitude) {
-                    const coords = [marker.latitude, marker.longitude];
-                    editMarker.geometry.setCoordinates(coords);
-                    editMap.setCenter(coords, 15);
-                }
-
-                editModal.style.display = 'block';
-            })
-            .catch(error => {
-                console.error("Ошибка при получении данных маркера:", error);
-                showNotification("Ошибка: " + error.message, 'error');
-            });
-    }
-
-    function closeEditModal() {
-        const editModal = document.getElementById('editMarkerModal');
-        if (editModal) editModal.style.display = 'none';
-    }
-
-    window.onclick = function (event) {
-        const addModal = document.getElementById('addMarkerModal');
-        const editModal = document.getElementById('editMarkerModal');
-
-        if (event.target == addModal) closeAddModal();
-        if (event.target == editModal) closeEditModal();
-    }
-
-    // === Уведомления ===
 
     function showNotification(message, type = 'info') {
         let notification = document.getElementById('notification');
         if (!notification) {
             notification = document.createElement('div');
             notification.id = 'notification';
-            notification.className = `notification ${type}-notification`;
             document.body.appendChild(notification);
         }
-
         notification.textContent = message;
         notification.className = `notification ${type}-notification`;
-        notification.style.display = 'block';
+        notification.style.display = 'flex';
 
-        setTimeout(() => {
-            notification.style.display = 'none';
-        }, 5000);
+        setTimeout(() => { notification.style.display = 'none'; }, 5000);
     }
 
-    function hideNotification(notificationId) {
-        const notification = document.getElementById(notificationId);
-        if (notification) notification.style.display = 'none';
-    }
-
-    function showServerNotifications() {
-        const successMessage = /*[[${successMessage}]]*/ null;
-        const errorMessage = /*[[${errorMessage}]]*/ null;
+    document.addEventListener('DOMContentLoaded', function () {
         const adminFormSuccess = /*[[${adminFormSuccess}]]*/ null;
-        const adminFormError = /*[[${adminFormError}]]*/ null;
+        const adminFormError   = /*[[${adminFormError}]]*/ null;
+        const successMessage   = /*[[${successMessage}]]*/ null;
+        const errorMessage     = /*[[${errorMessage}]]*/ null;
 
-        if (successMessage) showNotification(successMessage, 'success');
-        if (errorMessage) showNotification(errorMessage, 'error');
         if (adminFormSuccess) showNotification(adminFormSuccess, 'success');
-        if (adminFormError) showNotification(adminFormError, 'error');
-    }
-    function generateReport() {
-        window.location.href = '/api/reports/generate-monthly-report';
-    }
-    const addInfoModal = document.getElementById('addInfoModal');
-    const infoMarkerId = document.getElementById('info-marker-id');
-    const infoPhoneInput = document.getElementById('info-phone');
-    const infoEmailInput = document.getElementById('info-email');
+        if (adminFormError)   showNotification(adminFormError, 'error');
+        if (successMessage)   showNotification(successMessage, 'success');
+        if (errorMessage)     showNotification(errorMessage, 'error');
 
-    // Открытие модального окна с данными маркера
-    function performNewAction(markerId) {
-        fetch(`/admin/markers/api/${markerId}`)
-            .then(response => response.json())
-            .then(marker => {
-                infoMarkerId.value = marker.id;
-                infoPhoneInput.value = marker.phone || '';
-                infoEmailInput.value = marker.email || '';
-                addInfoModal.style.display = 'block';
-            })
-            .catch(error => {
-                console.error("Ошибка при получении данных маркера:", error);
-                alert("Не удалось загрузить данные маркера");
+        const navItems = document.querySelectorAll('.nav-item[data-section]');
+        const sections = document.querySelectorAll('.page-section');
+        const topbarSectionTitle = document.getElementById('topbar-section-title');
+
+        navItems.forEach(item => {
+            item.addEventListener('click', function (e) {
+                e.preventDefault();
+                const sectionId = this.dataset.section;
+                const title = this.dataset.title || this.textContent.trim();
+
+                document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+                this.classList.add('active');
+
+                sections.forEach(s => s.classList.remove('active'));
+                const target = document.getElementById('section-' + sectionId);
+                if (target) target.classList.add('active');
+
+                if (topbarSectionTitle) topbarSectionTitle.textContent = title;
+
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             });
-    }
-    document.getElementById('marker-search').addEventListener('input', function () {
-        const searchTerm = this.value.toLowerCase();
-        const rows = document.querySelectorAll('#markers-table tbody tr.marker-row');
-
-        rows.forEach(row => {
-            const nameCell = row.querySelector('.marker-name');
-            if (nameCell) {
-                const name = nameCell.textContent.toLowerCase();
-                row.style.display = name.includes(searchTerm) ? '' : 'none';
-            }
         });
+
+        // >>> ПАТЧ: переход на вкладку "Профиль" с других страниц админки (ссылка /admin/panel#profile)
+        if (location.hash === '#profile') {
+            const profileNav = document.querySelector('.nav-item[data-section="profile"]');
+            if (profileNav) profileNav.click();
+        }
     });
+
+    // ================= CSRF =================
+    function getCsrfToken() {
+        const cookieValue = document.cookie
+            .split('; ')
+            .find(row => row.startsWith('XSRF-TOKEN='))
+            ?.split('=')[1];
+        return cookieValue ? decodeURIComponent(cookieValue) : null;
+    }
+
+    // ================= Инлайн-редактирование профиля =================
+    function toggleProfileEdit(field) {
+        const valueEl = document.getElementById(`profile-${field}-value`);
+        const inputEl = document.getElementById(`profile-${field}-input`);
+        const btnEl   = document.getElementById(`profile-${field}-edit-btn`);
+        const isEditing = inputEl.style.display !== 'none';
+
+        if (!isEditing) {
+            inputEl.value = valueEl.textContent.trim();
+            valueEl.style.display = 'none';
+            inputEl.style.display = 'inline-block';
+            inputEl.focus();
+            btnEl.textContent = '✓';
+            btnEl.classList.add('confirm-mode');
+            return;
+        }
+
+        const newValue = inputEl.value.trim();
+        if (!newValue) {
+            showNotification('Поле не может быть пустым', 'error');
+            return;
+        }
+
+        fetch('/admin/profile/update-field', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-XSRF-TOKEN': getCsrfToken()
+            },
+            body: JSON.stringify({ field: field, value: newValue })
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(err => { throw new Error(err.message || 'Ошибка при сохранении'); });
+            }
+            return response.json();
+        })
+        .then(data => {
+            valueEl.textContent = data.value;
+            valueEl.style.display = 'inline';
+            inputEl.style.display = 'none';
+            btnEl.textContent = '✎';
+            btnEl.classList.remove('confirm-mode');
+            showNotification('Данные успешно изменены', 'success');
+        })
+        .catch(error => showNotification(error.message, 'error'));
+    }
+
+    // ================= Смена пароля =================
+    function openChangePasswordModal() {
+        document.getElementById('changePasswordModal').style.display = 'block';
+    }
+    function closeChangePasswordModal() {
+        document.getElementById('changePasswordModal').style.display = 'none';
+        document.getElementById('changePasswordForm').reset();
+    }
+    window.addEventListener('click', function (event) {
+        const modal = document.getElementById('changePasswordModal');
+        if (event.target === modal) closeChangePasswordModal();
+    });
+
+    document.getElementById('changePasswordForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        const newPassword = document.getElementById('new-password-input').value;
+        const confirmPassword = document.getElementById('confirm-password-input').value;
+
+        fetch('/admin/profile/change-password', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-XSRF-TOKEN': getCsrfToken()
+            },
+            body: JSON.stringify({ newPassword, confirmPassword })
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(err => { throw new Error(err.message || 'Ошибка при смене пароля'); });
+            }
+            return response.json();
+        })
+        .then(() => {
+            closeChangePasswordModal();
+            showNotification('Пароль успешно изменён', 'success');
+        })
+        .catch(error => showNotification(error.message, 'error'));
+    });
+
     /*]]>*/
 </script>
-<script th:src="@{/js/script.js}"></script>
 </body>
 </html>

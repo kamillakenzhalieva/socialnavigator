@@ -18,7 +18,6 @@ public class MarkerViewLog {
     @Column(name = "viewed_at", nullable = false)
     private LocalDateTime viewedAt;
 
-    // Конструкторы
 
     public MarkerViewLog() {
         this.viewedAt = LocalDateTime.now();
@@ -29,7 +28,6 @@ public class MarkerViewLog {
         this.viewedAt = LocalDateTime.now();
     }
 
-    // Геттеры и сеттеры
 
     public Long getId() {
         return id;

@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security6">
+<head>
+    <meta charset="UTF-8">
+    <title>Управление администраторами</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <style>
+        body { font-family: 'Inter', sans-serif; margin: 0; padding: 20px; background-color: #f4f7f6; color: #333; }
+        .admin-container { max-width: 1200px; margin: 20px auto; background: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 2px 15px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #2c3e50; margin-bottom: 25px; }
+        .nav-links { text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid #eee; }
+        .nav-links a, .nav-links button {
+            margin: 0 12px; text-decoration: none; color: #3498db; font-weight: 500;
+            padding: 8px 15px; border-radius: 5px; transition: background-color 0.3s, color 0.3s;
+        }
+        .nav-links a:hover, .nav-links button:hover { background-color: #3498db; color: white; }
+        .nav-links button { background: none; border: 1px solid #3498db; cursor: pointer; font-size: inherit; }
+
+        .table-actions {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .search-input {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.95em;
+            width: 280px;
+        }
+        .add-btn {
+            background-color: #34a853;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            font-size: 1em;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .add-btn:hover { background-color: #2d9249; }
+
+        table { width: 100%; border-collapse: collapse; margin-bottom: 25px; font-size: 0.95em; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; vertical-align: middle; }
+        th { background-color: #e9ecef; font-weight: 600; }
+        tr:nth-child(even) { background-color: #f8f9fa; }
+
+        .role-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: 500;
+        }
+        .role-badge.super { background-color: #fff3cd; color: #856404; }
+        .role-badge.regular { background-color: #e2e3e5; color: #383d41; }
+        .you-badge {
+            display: inline-block;
+            margin-left: 6px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.75em;
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+        .actions form { display: inline; }
+        .actions button {
+            padding: 8px 12px; border-radius: 4px; font-size: 0.85em; border: none; cursor: pointer;
+            transition: opacity 0.2s; color: #fff;
+        }
+        .actions button:hover { opacity: 0.85; }
+        .promote-btn { background-color: #ffc107; color: #333; }
+        .demote-btn { background-color: #6c757d; }
+        .revoke-btn { background-color: #dc3545; }
+
+        .no-results-row td { text-align: center; color: #888; padding: 20px; }
+
+        .form-group { margin-bottom: 18px; }
+        .form-group label { display: block; margin-bottom: 6px; font-weight: 500; color: #555; }
+        .form-group input[type="text"],
+        .form-group input[type="email"],
+        .form-group input[type="password"] {
+            width: 100%;
+            padding: 10px; border: 1px solid #ced4da; border-radius: 4px;
+            box-sizing: border-box; font-size: 1em;
+        }
+        .form-group input:focus { border-color: #3498db; outline: none; box-shadow: 0 0 0 0.1rem rgba(52, 152, 219, 0.25); }
+        .btn { padding: 10px 18px; border-radius: 4px; border: none; cursor: pointer; font-size: 1em; font-weight: 500; transition: background-color 0.3s; }
+        .btn-primary { background-color: #28a745; color: white; }
+        .btn-primary:hover { background-color: #218838; }
+
+        .modal { display: none; position: fixed; z-index: 1050; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5); }
+        .modal-content { background-color: #fff; margin: 8% auto; padding: 25px; border: 1px solid #bbb; width: 90%; max-width: 480px; border-radius: 6px; position: relative; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+        .close-btn { color: #888; position: absolute; top: 10px; right: 20px; font-size: 28px; font-weight: bold; cursor: pointer; }
+        .close-btn:hover { color: #333; }
+
+        .notification {
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+            padding: 15px 20px; border-radius: 5px; display: flex; align-items: center;
+            justify-content: space-between; box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 1100; max-width: 80%; animation: fadeIn 0.3s ease-in-out;
+        }
+        .success-notification { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error-notification { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .notification-close { margin-left: 15px; cursor: pointer; font-weight: bold; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+            to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+    </style>
+</head>
+<body>
+<div class="admin-container">
+    <h1>Управление администраторами</h1>
+    <div class="nav-links">
+        <a th:href="@{/admin/panel}">В админ-панель</a>
+        <a th:href="@{/}">Перейти на карту</a>
+        <a th:href="@{/admin/organizations}">База организаций</a>
+        <a th:href="@{/admin/chats}">Входящие сообщения</a>
+        <form th:action="@{/logout}" method="post" style="display: inline;">
+            <button type="submit">Выйти из системы</button>
+        </form>
+    </div>
+
+    <div id="notifications-container"></div>
+
+    <div class="table-actions">
+        <input type="text" id="admin-search" class="search-input" placeholder="Поиск по имени или почте...">
+        <button class="add-btn" onclick="openAddAdminModal()">+ Добавить администратора</button>
+    </div>
+
+    <table id="admins-table">
+        <thead>
+        <tr>
+            <th>Имя</th>
+            <th>Email</th>
+            <th>Роль</th>
+            <th>Действия</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:if="${#lists.isEmpty(admins)}">
+            <td colspan="4" style="text-align:center;">Администраторы не найдены</td>
+        </tr>
+        <tr th:each="a : ${admins}" class="admin-row">
+            <td class="admin-name">
+                <span th:text="${a.name}"></span>
+                <span class="you-badge" th:if="${a.id == currentAdminId}">это вы</span>
+            </td>
+            <td class="admin-email" th:text="${a.email}"></td>
+            <td>
+                <span class="role-badge super" th:if="${a.superAdmin}">Супер-админ</span>
+                <span class="role-badge regular" th:unless="${a.superAdmin}">Администратор</span>
+            </td>
+            <td class="actions">
+                <form th:if="${!a.superAdmin}" th:action="@{/admin/admins/promote}" method="post">
+                    <input type="hidden" name="id" th:value="${a.id}"/>
+                    <button type="submit" class="promote-btn">Повысить до супер-админа</button>
+                </form>
+                <form th:if="${a.superAdmin}" th:action="@{/admin/admins/demote}" method="post">
+                    <input type="hidden" name="id" th:value="${a.id}"/>
+                    <button type="submit" class="demote-btn">Понизить до администратора</button>
+                </form>
+                <form th:action="@{/admin/admins/revoke}" method="post">
+                    <input type="hidden" name="id" th:value="${a.id}"/>
+                    <button type="submit" class="revoke-btn"
+                            onclick="return confirm('Отозвать права администратора у «' + [[${a.name}]] + '»? Пользователь станет обычным пользователем.');">
+                        Отозвать права
+                    </button>
+                </form>
+            </td>
+        </tr>
+        <tr id="no-results-row" class="no-results-row" style="display:none;">
+            <td colspan="4">Ничего не найдено</td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+
+<div id="addAdminModal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" onclick="closeAddAdminModal()">×</span>
+        <h3>Добавить нового администратора</h3>
+        <form th:action="@{/admin/admins/add}" method="post">
+            <div class="form-group">
+                <label for="admin-name-input">Имя администратора:</label>
+                <input type="text" id="admin-name-input" name="name" required>
+            </div>
+            <div class="form-group">
+                <label for="admin-email-input">Email администратора:</label>
+                <input type="email" id="admin-email-input" name="email" required>
+            </div>
+            <div class="form-group">
+                <label for="admin-password-input">Пароль (минимум 8 символов):</label>
+                <input type="password" id="admin-password-input" name="password" required minlength="8">
+            </div>
+            <div class="form-group">
+                <label for="admin-confirm-password-input">Подтвердите пароль:</label>
+                <input type="password" id="admin-confirm-password-input" name="confirmPassword" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Добавить администратора</button>
+        </form>
+    </div>
+</div>
+
+<script th:inline="javascript">
+    /*<![CDATA[*/
+    function openAddAdminModal() {
+        document.getElementById('addAdminModal').style.display = 'block';
+    }
+    function closeAddAdminModal() {
+        document.getElementById('addAdminModal').style.display = 'none';
+    }
+    window.addEventListener('click', function (event) {
+        const modal = document.getElementById('addAdminModal');
+        if (event.target === modal) closeAddAdminModal();
+    });
+
+    function showNotification(message, type = 'info') {
+        let notification = document.getElementById('notification');
+        if (!notification) {
+            notification = document.createElement('div');
+            notification.id = 'notification';
+            notification.className = `notification ${type}-notification`;
+            document.body.appendChild(notification);
+        }
+        notification.textContent = message;
+        notification.className = `notification ${type}-notification`;
+        notification.style.display = 'block';
+        setTimeout(() => { notification.style.display = 'none'; }, 5000);
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const adminFormSuccess = /*[[${adminFormSuccess}]]*/ null;
+        const adminFormError = /*[[${adminFormError}]]*/ null;
+        if (adminFormSuccess) showNotification(adminFormSuccess, 'success');
+        if (adminFormError) showNotification(adminFormError, 'error');
+
+        const searchInput = document.getElementById('admin-search');
+        function applySearch() {
+            const term = searchInput.value.trim().toLowerCase();
+            const rows = document.querySelectorAll('#admins-table tbody tr.admin-row');
+            let visibleCount = 0;
+            rows.forEach(row => {
+                const name = row.querySelector('.admin-name').textContent.toLowerCase();
+                const email = row.querySelector('.admin-email').textContent.toLowerCase();
+                const visible = !term || name.includes(term) || email.includes(term);
+                row.style.display = visible ? '' : 'none';
+                if (visible) visibleCount++;
+            });
+            const noResultsRow = document.getElementById('no-results-row');
+            if (noResultsRow) noResultsRow.style.display = visibleCount === 0 ? '' : 'none';
+        }
+        if (searchInput) searchInput.addEventListener('input', applySearch);
+    });
+    /*]]>*/
+</script>
+</body>
+</html>

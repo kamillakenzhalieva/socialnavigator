@@ -3,6 +3,9 @@ package com.social_navigator_ar.demo.model;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 @Table(name = "markers")
 public class Marker {
@@ -42,9 +45,20 @@ public class Marker {
 
     private String imageUrl;
 
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "marker_images", joinColumns = @JoinColumn(name = "marker_id"))
+    @Column(name = "image_url", length = 500)
+    @OrderColumn(name = "image_order")
+    private List<String> imageUrls = new ArrayList<>();
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "marker_image_thumbnails", joinColumns = @JoinColumn(name = "marker_id"))
+    @Column(name = "thumbnail_url", length = 500)
+    @OrderColumn(name = "image_order")
+    private List<String> thumbnailUrls = new ArrayList<>();
+
     private int views = 0;
 
-    // Геттеры и сеттеры
     public Long getId() {return id;}
     public void setId(Long id) {this.id = id;}
     public String getName() {return name;}
@@ -61,6 +75,17 @@ public class Marker {
     public void setAge(String age) {this.age = age;}
     public String getImageUrl() {return imageUrl;}
     public void setImageUrl(String imageUrl) {this.imageUrl = imageUrl;}
+    public List<String> getImageUrls() {return imageUrls;}
+    public void setImageUrls(List<String> imageUrls) {
+        this.imageUrls = imageUrls != null ? imageUrls : new ArrayList<>();
+        if (!this.imageUrls.isEmpty()) {
+            this.imageUrl = this.imageUrls.get(0);
+        }
+    }
+    public List<String> getThumbnailUrls() {return thumbnailUrls;}
+    public void setThumbnailUrls(List<String> thumbnailUrls) {
+        this.thumbnailUrls = thumbnailUrls != null ? thumbnailUrls : new ArrayList<>();
+    }
     public int getViews() {return views;}
     public void setViews(int views) {this.views = views;}
     public String getPhone() { return phone; }
@@ -68,7 +93,6 @@ public class Marker {
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
 
-    // Конструкторы
     public Marker() {}
 
     public Marker(String name, String address, Double latitude, Double longitude, String diagnosis, String age) {
